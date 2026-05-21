@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>野外調査レコーダー (連続取得修正版)</title>
+    <title>野外調査レコーダー</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS for Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -18,6 +21,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
 
+    <!-- ヘッダー -->
     <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-2">
             <i data-lucide="compass" class="w-6 h-6"></i>
@@ -31,8 +35,10 @@
         </div>
     </header>
 
+    <!-- メインコンテンツ -->
     <main class="flex-1 max-w-4xl w-full mx-auto p-4 space-y-4 pb-24">
 
+        <!-- セキュリティ警告バナー -->
         <div id="security-warning" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-900 text-xs">
             <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0"></i>
             <div class="space-y-1">
@@ -41,6 +47,7 @@
             </div>
         </div>
 
+        <!-- 新規レコード入力カード -->
         <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h2 class="font-bold text-slate-700 flex items-center gap-2">
@@ -50,24 +57,14 @@
                 <span class="text-xs text-slate-400" id="live-clock">00:00:00</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">調査地点名 / タグ</label>
-                    <input type="text" id="note-title" placeholder="例: 地点A, コドラート1" 
-                           class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">カテゴリ</label>
-                    <select id="note-category" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                        <option value="一般観察">一般観察</option>
-                        <option value="植生・植物">植生・植物</option>
-                        <option value="動物・昆虫">動物・昆虫</option>
-                        <option value="地質・土壌">地質・土壌</option>
-                        <option value="水質・環境">水質・環境</option>
-                    </select>
-                </div>
+            <!-- 入力フォーム (カテゴリを削除し、地点名入力をフルサイズに最適化) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">調査地点名 / タグ</label>
+                <input type="text" id="note-title" placeholder="例: 地点A, コドラート1, 湧水サンプリング地点" 
+                       class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
             </div>
 
+            <!-- メモ本文（入力を始めると自動でGPS起動） -->
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1 flex justify-between">
                     <span>調査メモ・測定データ</span>
@@ -80,6 +77,7 @@
                           oninput="triggerAutoGPS()"></textarea>
             </div>
 
+            <!-- 位置情報表示 -->
             <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-3">
                 <div class="flex flex-wrap justify-between items-center gap-2">
                     <span class="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
@@ -120,6 +118,7 @@
                 </div>
             </div>
 
+            <!-- 保存・クリアボタン -->
             <div class="flex space-x-3 pt-2">
                 <button onclick="clearForm()" 
                         class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2">
@@ -134,10 +133,12 @@
             </div>
         </section>
 
+        <!-- メッセージ通知用トースト -->
         <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-full text-xs shadow-xl flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 z-[9999]">
             <span id="toast-message"></span>
         </div>
 
+        <!-- 記録一覧とエクスポート -->
         <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-3">
                 <h2 class="font-bold text-slate-700 flex items-center gap-2">
@@ -161,11 +162,13 @@
                 </div>
             </div>
 
+            <!-- 地図 -->
             <div class="space-y-1">
                 <span class="text-xs font-semibold text-slate-500 block">調査プロットマップ</span>
                 <div id="map" class="border border-slate-200"></div>
             </div>
 
+            <!-- レコードリスト -->
             <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-1">
                 <div id="no-records" class="text-center py-8 text-slate-400 text-sm space-y-2">
                     <i data-lucide="sticky-note" class="w-10 h-10 mx-auto opacity-40"></i>
@@ -176,13 +179,15 @@
         </section>
     </main>
 
+    <!-- フッター -->
     <footer class="fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-400 text-xs py-2 px-4 flex justify-between items-center z-40">
         <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>連続測位バグ修正版 (v1.4)</span>
+            <span>野外調査レコーダー (シンプル版)</span>
         </div>
     </footer>
 
+    <!-- 全消去確認モーダル -->
     <div id="clear-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999] hidden">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <h3 class="text-lg font-bold text-rose-600">本当にすべての記録を消去しますか？</h3>
@@ -198,7 +203,6 @@
         let map = null;
         let mapMarkers = [];
         
-        // 最新の純粋なGPSデータを保持するオブジェクト（初期状態はnull）
         let currentGPS = { latitude: null, longitude: null, altitude: null, accuracy: null, timestamp: null, method: '未取得' };
         let isLocating = false;
         let autoGpsTriggered = false;
@@ -244,7 +248,7 @@
             fetchFreshGPS('手動取得(強制再計測)', true);
         }
 
-        // --- コアロジック: 位置情報を完全に新しく「Promise」で取得する関数 ---
+        // コアGPS取得機能
         function fetchFreshGPS(triggerType = '通常取得', showToastFlag = false) {
             return new Promise((resolve) => {
                 if (isLocating) { resolve(false); return; }
@@ -253,7 +257,6 @@
                 updateGPSUIStatus('searching');
                 hideGPSTroubleHint();
 
-                // キャッシュを一切使わない(maximumAge: 0)高精度設定
                 const geoOptions = {
                     enableHighAccuracy: true,
                     timeout: 8000,
@@ -269,7 +272,6 @@
                         currentGPS.timestamp = new Date().toLocaleTimeString();
                         currentGPS.method = triggerType;
 
-                        // UI描画更新
                         document.getElementById('val-lat').textContent = currentGPS.latitude.toFixed(6);
                         document.getElementById('val-lon').textContent = currentGPS.longitude.toFixed(6);
                         document.getElementById('val-alt').textContent = currentGPS.altitude;
@@ -283,7 +285,6 @@
                         resolve(true);
                     },
                     (error) => {
-                        // 失敗時は低精度モードでキャッシュゼロ再試行
                         const fallbackOptions = { enableHighAccuracy: false, timeout: 6000, maximumAge: 0 };
                         navigator.geolocation.getCurrentPosition(
                             (fbPos) => {
@@ -316,7 +317,7 @@
 
         function handleGPSError(error) {
             let msg = "測位エラー: ";
-            if (error.code === error.PERMISSION_DENIED) msg += "位置情報の利用許可がありません。ブラウザ設定を確認してください。";
+            if (error.code === error.PERMISSION_DENIED) msg += "位置情報の利用許可がありません。";
             else if (error.code === error.POSITION_UNAVAILABLE) msg += "GPS電波を受信できません。障害物のない屋外へ移動してください。";
             else if (error.code === error.TIMEOUT) msg += "応答タイムアウト。再取得ボタンを押してください。";
             showGPSTroubleHint(msg);
@@ -345,15 +346,13 @@
         function showGPSTroubleHint(m) { const b = document.getElementById('gps-trouble-hint'); document.getElementById('gps-hint-text').textContent = m; b.classList.remove('hidden'); }
         function hideGPSTroubleHint() { document.getElementById('gps-trouble-hint').classList.add('hidden'); }
 
-        // --- 確実な非同期保存処理 (async/await) ---
+        // レコード保存処理
         async function saveRecord() {
             const title = document.getElementById('note-title').value.trim();
-            const category = document.getElementById('note-category').value;
             const body = document.getElementById('note-body').value.trim();
 
             if (!body) { showToast("調査メモを入力してください。"); return; }
 
-            // 保存ボタンが押された瞬間、古い位置情報を完全に上書きするためにその場でGPSを強制再取得
             showToast("保存前に最新の位置情報を最終チェック中...");
             await fetchFreshGPS('保存時最終同期');
 
@@ -365,11 +364,10 @@
                 id: 'rec_' + Date.now(),
                 date: formattedDate,
                 time: formattedTime,
-                title: title || `${category}_${formattedTime}`,
-                category: category,
+                title: title || `地点_${formattedTime}`,
                 body: body,
-                lat: currentGPS.latitude, // 新しく取得されたピンポイントの緯度
-                lon: currentGPS.longitude, // 新しく取得されたピンポイントの経度
+                lat: currentGPS.latitude,
+                lon: currentGPS.longitude,
                 alt: currentGPS.altitude,
                 acc: currentGPS.accuracy,
                 gpsMethod: currentGPS.method
@@ -379,7 +377,7 @@
             saveToStorage();
             renderRecords();
             updateMapMarkers();
-            clearForm(); // 次の調査地のためにデータを完全リセット
+            clearForm();
             showToast("時刻と最新の位置情報をセットで記録しました！");
         }
 
@@ -389,7 +387,6 @@
             document.getElementById('auto-gps-msg').classList.add('hidden');
             autoGpsTriggered = false;
 
-            // 重要: 前の地点のデータを引きずらないよう、変数を完全にnullに戻す
             currentGPS = { latitude: null, longitude: null, altitude: null, accuracy: null, timestamp: null, method: '未取得' };
             document.getElementById('val-lat').textContent = '未取得';
             document.getElementById('val-lon').textContent = '未取得';
@@ -429,16 +426,12 @@
             records.forEach(r => {
                 const hasValidCoords = r.lat !== null && r.lon !== null;
                 const coordString = hasValidCoords ? `${r.lat.toFixed(6)}, ${r.lon.toFixed(6)}` : '位置情報なし';
-                let badgeClass = 'bg-slate-100 text-slate-700';
-                if (r.category === '植生・植物') badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-                else if (r.category === '動物・昆虫') badgeClass = 'bg-amber-50 text-amber-700 border border-amber-200';
 
                 html += `
                     <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2 relative group">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-2">
                                 <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-mono">${r.date} ${r.time}</span>
-                                <span class="text-[10px] ${badgeClass} px-2 py-0.5 rounded-full font-semibold">${r.category}</span>
                             </div>
                             <button onclick="deleteRecord('${r.id}')" class="text-slate-400 hover:text-rose-600 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
@@ -485,8 +478,8 @@
 
         function exportToCSV() {
             if (records.length === 0) return;
-            const headers = ["ID", "日付", "時間", "地点名", "カテゴリ", "メモ", "緯度", "経度", "高度", "精度"];
-            const rows = records.map(r => [r.id, r.date, r.time, r.title, r.category, r.body.replace(/\n/g, " "), r.lat||"", r.lon||"", r.alt||"", r.acc||""]);
+            const headers = ["ID", "日付", "時間", "地点名", "メモ", "緯度", "経度", "高度", "精度"];
+            const rows = records.map(r => [r.id, r.date, r.time, r.title, r.body.replace(/\n/g, " "), r.lat||"", r.lon||"", r.alt||"", r.acc||""]);
             const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
