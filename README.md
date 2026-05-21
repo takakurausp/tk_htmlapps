@@ -4,7 +4,7 @@
 
 すべてのアプリは **GitHub Pages** で公開されており、スマートフォンやPCのブラウザからすぐにアクセスして利用できます。
 
-👉 [**公開ページ（GitHub Pages）でアプリ一覧を見る**](https://takakurausp.github.io/tk_htmlapps/ "null") 
+👉 [**公開ページ（GitHub Pages）でアプリ一覧を見る**](https://takakurausp.github.io/tk_htmlapps/ "null")
 
 ## 🚀 収録アプリ一覧
 
@@ -45,8 +45,7 @@
 1.  リポジトリをクローンするか、必要な `.html` ファイルをダウンロードします。
     
     ```
-    git clone [https://github.com/your-github-username/your-repo-name.git](https://github.com/your-github-username/your-repo-name.git)
-    
+    git clone [https://github.com/takakurausp/tk_htmlapps.git](https://github.com/takakurausp/tk_htmlapps.git)
     ```
     
 2.  ダウンロードした `.html` ファイルをブラウザ（Chrome, Safari, Firefoxなど）でダブルクリックして開きます。
@@ -78,11 +77,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 ```
 
 ## 👤 開発者 (Author)
 
 *   **Koh-ichi Takakura**
     
-*   GitHub: [@your-github-username](https://github.com/your-github-username "null")
+*   GitHub: [@takakurausp](https://github.com/takakurausp "null")
