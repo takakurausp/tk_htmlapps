@@ -10,7 +10,7 @@
 
 ### 1. 🧭 野外調査レコーダー (Field Notes Recorder)
 
-野外調査やフィールドワークでの記録に特化した、スマートフォン最適化のデータロガーです。
+野外調査やフィールドワークでの記録に特化した、スマートフォン最適化 of のデータロガーです。
 
 *   **特徴**:
     
@@ -45,7 +45,7 @@
 1.  リポジトリをクローンするか、必要な `.html` ファイルをダウンロードします。
     
     ```
-    git clone [https://github.com/takakurausp/tk_htmlapps.git](https://github.com/takakurausp/tk_htmlapps.git)
+    git clone https://github.com/takakurausp/tk_htmlapps.git
     ```
     
 2.  ダウンロードした `.html` ファイルをブラウザ（Chrome, Safari, Firefoxなど）でダブルクリックして開きます。
