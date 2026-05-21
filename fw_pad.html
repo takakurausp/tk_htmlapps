@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>野外調査レコーダー</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        /* モバイル用のスクロール最適化とボトムシート風の調整 */
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        #map {
+            height: 250px;
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- ヘッダー -->
+    <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="compass" class="w-6 h-6 animate-spin-slow"></i>
+            <h1 class="text-lg font-bold tracking-wider">野外調査レコーダー</h1>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span id="gps-status-badge" class="text-xs bg-emerald-800 text-emerald-200 px-2 py-1 rounded-full flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-slate-400 inline-block" id="gps-indicator"></span>
+                <span id="gps-status-text">GPS待機中</span>
+            </span>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 space-y-4 pb-24">
+
+        <!-- セキュリティ警告バナー（非HTTPS環境の場合のみJSで表示） -->
+        <div id="security-warning" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-900 text-xs">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0"></i>
+            <div class="space-y-1">
+                <p class="font-bold">【重要】GPSが動作しない可能性があります</p>
+                <p>現在HTTPS接続ではないため、ブラウザのセキュリティ制限により位置情報（GPS）の取得がブロックされる場合があります。</p>
+                <p class="text-slate-500">※スマートフォンでご利用 of の際は、必ず <strong>https://</strong> で始まるアドレスでアクセスするか、サーバー経由で起動してください。</p>
+            </div>
+        </div>
+
+        <!-- 新規レコード入力カード -->
+        <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="pen-tool" class="text-emerald-600 w-5 h-5"></i>
+                    新規調査メモの入力
+                </h2>
+                <span class="text-xs text-slate-400" id="live-clock">00:00:00</span>
+            </div>
+
+            <!-- 調査項目入力フォーム（カテゴリを廃止し、地点名入力欄をフルサイズに） -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">調査地点名 / タグ</label>
+                    <input type="text" id="note-title" placeholder="例: 地点A, コドラート1, 湧水地" 
+                           class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <!-- メモ本文（入力を始めると自動でGPS起動） -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1 flex justify-between">
+                    <span>調査メモ・測定データ</span>
+                    <span class="text-emerald-600 text-[10px] font-normal animate-pulse hidden" id="auto-gps-msg">
+                        入力開始を検知: GPS自動測定中...
+                    </span>
+                </label>
+                <textarea id="note-body" rows="4" placeholder="ここに調査内容、観察結果、数値を入力してください。入力を開始すると自動で位置情報を取得します。" 
+                          class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"
+                          oninput="triggerAutoGPS()"></textarea>
+            </div>
+
+            <!-- 位置情報表示/手動取得エリア -->
+            <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-3">
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <span class="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                        <i data-lucide="map-pin" class="text-rose-500 w-4 h-4"></i>
+                        取得された位置情報
+                    </span>
+                    <button type="button" onclick="getGPSLocation(true)" 
+                            class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 shadow-sm transition-all active:scale-95">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refresh-icon"></i>
+                        現在地を手動取得
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div class="bg-white p-2 rounded-lg border border-slate-100">
+                        <div class="text-slate-400">緯度 (Latitude)</div>
+                        <div class="font-mono font-semibold text-slate-700 mt-0.5" id="val-lat">未取得</div>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-100">
+                        <div class="text-slate-400">経度 (Longitude)</div>
+                        <div class="font-mono font-semibold text-slate-700 mt-0.5" id="val-lon">未取得</div>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-100">
+                        <div class="text-slate-400">高度 (Altitude)</div>
+                        <div class="font-mono font-semibold text-slate-700 mt-0.5" id="val-alt">-</div>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-slate-100">
+                        <div class="text-slate-400">位置精度 (Accuracy)</div>
+                        <div class="font-mono font-semibold text-slate-700 mt-0.5" id="val-acc">-</div>
+                    </div>
+                </div>
+                <!-- GPSの具体的な状況・エラー時のアドバイスを表示するスペース -->
+                <div id="gps-trouble-hint" class="hidden bg-rose-50 border border-rose-100 text-rose-800 p-2.5 rounded-lg text-[11px] leading-relaxed">
+                    <p class="font-bold flex items-center gap-1"><i data-lucide="info" class="w-3.5 h-3.5"></i> 測位に関するアドバイス:</p>
+                    <span id="gps-hint-text">屋外の開けた場所に移動するか、端末の位置情報設定がオンになっているか確認してください。</span>
+                </div>
+                <div class="text-[10px] text-slate-400 flex justify-between px-1">
+                    <span id="gps-time">取得時間: --:--:--</span>
+                    <span id="gps-method">トリガー: なし</span>
+                </div>
+            </div>
+
+            <!-- 保存・クリアボタン -->
+            <div class="flex space-x-3 pt-2">
+                <button onclick="clearForm()" 
+                        class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-semibold py-3 px-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    入力クリア
+                </button>
+                <button onclick="saveRecord()" 
+                        class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    レコードを記録する
+                </button>
+            </div>
+        </section>
+
+        <!-- メッセージ通知用トースト -->
+        <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-full text-xs shadow-xl flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 z-[9999]">
+            <span id="toast-message">メッセージ</span>
+        </div>
+
+        <!-- 記録一覧とエクスポート -->
+        <section class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 pb-3">
+                <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                    <i data-lucide="database" class="text-emerald-600 w-5 h-5"></i>
+                    調査記録データ (<span id="record-count">0</span>件)
+                </h2>
+                <!-- 一括操作・ダウンロード -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportToCSV()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors">
+                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                        CSV保存
+                    </button>
+                    <button onclick="exportToJSON()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        JSON保存
+                    </button>
+                    <label class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors cursor-pointer">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                        読み込み
+                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event)">
+                    </label>
+                    <button onclick="confirmClearAll()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors">
+                        <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                        全消去
+                    </button>
+                </div>
+            </div>
+
+            <!-- 地図プレビュー -->
+            <div class="space-y-1">
+                <span class="text-xs font-semibold text-slate-500 block">調査ルート/プロット簡易マップ</span>
+                <div id="map" class="border border-slate-200"></div>
+                <p class="text-[10px] text-slate-400 text-right">※オフライン環境では地図背景が表示されない場合があります（プロットや現在地は保持されます）。</p>
+            </div>
+
+            <!-- レコードリスト -->
+            <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar pr-1" id="record-list-container">
+                <!-- 履歴が空の場合の表示 -->
+                <div id="no-records" class="text-center py-8 text-slate-400 text-sm space-y-2">
+                    <i data-lucide="sticky-note" class="w-10 h-10 mx-auto opacity-40"></i>
+                    <p>保存された調査メモはまだありません。</p>
+                    <p class="text-xs">上のフォームから最初のレコードを記録してください。</p>
+                </div>
+                <!-- 履歴カードがJavaScriptで挿入される -->
+                <div id="records-list" class="space-y-2.5"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- フッター（固定ステータスバー） -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-slate-900 text-slate-400 text-xs py-2 px-4 flex justify-between items-center border-t border-slate-800 z-40">
+        <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>システム稼働中 (ローカル保存)</span>
+        </div>
+        <div>
+            <span>Field Notes v1.4</span>
+        </div>
+    </footer>
+
+    <!-- 全消去確認モーダル -->
+    <div id="clear-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999] hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+            <div class="text-rose-600 flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                <h3 class="text-lg font-bold">本当にすべての記録を消去しますか？</h3>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                これまでに記録したすべての調査データがブラウザのストレージから完全に削除されます。この操作は取り消せません。事前にCSVやJSONでのバックアップを推奨します。
+            </p>
+            <div class="flex space-x-3">
+                <button onclick="toggleClearModal(false)" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 rounded-lg">キャンセル</button>
+                <button onclick="clearAllRecords()" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 rounded-lg">完全に削除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // --- アプリケーションの状態管理 ---
+        let records = [];
+        let map = null;
+        let mapMarkers = [];
+        let currentGPS = {
+            latitude: null,
+            longitude: null,
+            altitude: null,
+            accuracy: null,
+            timestamp: null,
+            method: 'なし'
+        };
+        let isLocating = false;
+        let autoGpsTriggered = false;
+
+        // --- 初期化処理 ---
+        window.onload = function() {
+            // Lucideアイコンの初期化
+            lucide.createIcons();
+
+            // 時計の開始
+            startClock();
+
+            // ローカルストレージからデータ復元
+            loadFromStorage();
+
+            // 地図の初期化
+            initMap();
+
+            // HTTPS環境かチェック
+            checkSecurityContext();
+
+            // 起動時に穏やかに最初のGPS取得を試みる
+            getGPSLocation(false, '起動時自動');
+        };
+
+        // --- セキュリティ状態の検出 ---
+        function checkSecurityContext() {
+            // ローカルホスト以外のHTTP接続、または iframeなどのセキュアでない状態を検出
+            const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const warningEl = document.getElementById('security-warning');
+            if (!isSecure) {
+                warningEl.classList.remove('hidden');
+            }
+        }
+
+        // --- 時計表示 ---
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                const timeStr = now.toTimeString().split(' ')[0];
+                document.getElementById('live-clock').textContent = timeStr;
+            }, 1000);
+        }
+
+        // --- トースト通知機能 (alert代替) ---
+        function showToast(message, duration = 4000) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.textContent = message;
+            
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, duration);
+        }
+
+        // --- GPS取得ロジック ---
+        // メモ入力開始時に自動でGPSを回す
+        function triggerAutoGPS() {
+            if (!autoGpsTriggered) {
+                const noteBody = document.getElementById('note-body').value;
+                if (noteBody.length >= 1) { // 1文字以上の入力で即反応
+                    autoGpsTriggered = true;
+                    document.getElementById('auto-gps-msg').classList.remove('hidden');
+                    getGPSLocation(false, '自動取得');
+                }
+            }
+        }
+
+        // 位置情報の取得（フォールバック機能付き）
+        function getGPSLocation(isManual = false, triggerType = '手動取得') {
+            if (isLocating) return;
+            
+            isLocating = true;
+            updateGPSUIStatus('searching');
+            hideGPSTroubleHint();
+
+            // --- 試行1: 高精度優先GPSオプション ---
+            const highAccuracyOptions = {
+                enableHighAccuracy: true,  // 高精度GPSを使用
+                timeout: 10000,            // 10秒待つ
+                maximumAge: 3000           // 3秒前のキャッシュは許容して高速化
+            };
+
+            if (!navigator.geolocation) {
+                showToast("お使いのブラウザ・端末は位置情報取得に対応していません");
+                updateGPSUIStatus('error');
+                showGPSTroubleHint("ブラウザが位置情報API（Geolocation）に対応していません。");
+                isLocating = false;
+                return;
+            }
+
+            // GPSの実行
+            navigator.geolocation.getCurrentPosition(
+                // 成功時
+                (position) => {
+                    handleGPSSuccess(position, triggerType, isManual);
+                },
+                // 1回目の失敗（高精度で捕まえられなかった場合）
+                (error) => {
+                    console.warn("高精度GPS取得に失敗。低精度モードで再試行します...", error);
+                    
+                    // --- 試行2: 低精度フォールバック（Wi-Fi、モバイル基地局優先） ---
+                    const fallbackOptions = {
+                        enableHighAccuracy: false, // 基地局優先
+                        timeout: 8000,            // 8秒待つ
+                        maximumAge: 15000         // 15秒前のキャッシュまで許容
+                    };
+
+                    navigator.geolocation.getCurrentPosition(
+                        // 成功時
+                        (fallbackPosition) => {
+                            handleGPSSuccess(fallbackPosition, `${triggerType} (フォールバック)`, isManual);
+                        },
+                        // 2回目も失敗した場合
+                        (fallbackError) => {
+                            handleGPSError(fallbackError, isManual);
+                        },
+                        fallbackOptions
+                    );
+                },
+                highAccuracyOptions
+            );
+        }
+
+        // 位置情報取得成功時の共通処理
+        function handleGPSSuccess(position, methodUsed, isManual) {
+            currentGPS.latitude = position.coords.latitude;
+            currentGPS.longitude = position.coords.longitude;
+            currentGPS.altitude = position.coords.altitude !== null ? position.coords.altitude.toFixed(1) + ' m' : '利用不可';
+            currentGPS.accuracy = position.coords.accuracy ? position.coords.accuracy.toFixed(1) + ' m' : '判定不可';
+            
+            const now = new Date();
+            currentGPS.timestamp = now.toLocaleTimeString();
+            currentGPS.method = methodUsed;
+
+            // UIに座標をセット
+            document.getElementById('val-lat').textContent = currentGPS.latitude.toFixed(6);
+            document.getElementById('val-lon').textContent = currentGPS.longitude.toFixed(6);
+            document.getElementById('val-alt').textContent = currentGPS.altitude;
+            document.getElementById('val-acc').textContent = currentGPS.accuracy;
+            document.getElementById('gps-time').textContent = `取得時間: ${currentGPS.timestamp}`;
+            document.getElementById('gps-method').textContent = `トリガー: ${currentGPS.method}`;
+
+            updateGPSUIStatus('success');
+            hideGPSTroubleHint();
+            isLocating = false;
+
+            if (isManual) {
+                showToast("位置情報を取得しました！");
+            }
+        }
+
+        // 位置情報取得失敗時の処理
+        function handleGPSError(error, isManual) {
+            updateGPSUIStatus('error');
+            isLocating = false;
+
+            let errorTitle = "位置情報の取得に失敗しました。";
+            let advice = "";
+
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorTitle = "位置情報の利用許可が拒否されました。";
+                    advice = "端末またはブラウザの設定で、このサイトへの『位置情報アクセス』が許可されているか確認してください。一度拒否すると、設定画面から手動で変更する必要があります。";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorTitle = "現在地を判定できません。";
+                    advice = "GPS電波が十分に届いていないか、ネットワークに問題があります。屋外の開けた場所に移動するか、Wi-FiをONにすると改善する場合があります。";
+                    break;
+                case error.TIMEOUT:
+                    errorTitle = "測位がタイムアウトしました。";
+                    advice = "GPS衛星、またはネットワークからの位置情報の応答がありませんでした。もう一度『現在地を手動取得』を押して再試行してください。";
+                    break;
+                default:
+                    advice = "一時的なエラーが発生しました。時間を置いてから再試行してください。";
+                    break;
+            }
+
+            // HTTPによる拒否の可能性を警告に付け加える
+            const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (!isSecure) {
+                advice += " 【重要】現在非HTTPS(http://)接続です。これが失敗の根本原因である可能性が高いです。https:// 接続を確保してください。";
+            }
+
+            if (isManual) {
+                showToast(errorTitle + "アドバイスをご確認ください。");
+            }
+            showGPSTroubleHint(errorTitle + " " + advice);
+        }
+
+        // GPS不調ヒントの表示/非表示
+        function showGPSTroubleHint(message) {
+            const hintBox = document.getElementById('gps-trouble-hint');
+            const hintText = document.getElementById('gps-hint-text');
+            hintText.textContent = message;
+            hintBox.classList.remove('hidden');
+        }
+
+        function hideGPSTroubleHint() {
+            const hintBox = document.getElementById('gps-trouble-hint');
+            hintBox.classList.add('hidden');
+        }
+
+        // GPS周りのUI状態表示の更新
+        function updateGPSUIStatus(state) {
+            const indicator = document.getElementById('gps-indicator');
+            const statusText = document.getElementById('gps-status-text');
+            const refreshIcon = document.getElementById('refresh-icon');
+
+            if (state === 'searching') {
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping inline-block";
+                statusText.textContent = "測位中...";
+                if (refreshIcon) refreshIcon.classList.add('animate-spin');
+            } else if (state === 'success') {
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block";
+                statusText.textContent = "GPS捕捉完了";
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+            } else if (state === 'error') {
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-rose-500 inline-block";
+                statusText.textContent = "測位エラー";
+                if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+            }
+        }
+
+        // --- レコードの保存と管理 ---
+        function saveRecord() {
+            const title = document.getElementById('note-title').value.trim();
+            const body = document.getElementById('note-body').value.trim();
+
+            if (!body) {
+                showToast("調査メモが空欄です。記録を入力してください。");
+                return;
+            }
+
+            // GPSが未取得の場合は再度その場で取得を試みる
+            if (currentGPS.latitude === null) {
+                showToast("位置情報を取得してから記録します。少々お待ちください...");
+                getGPSLocation(false, '保存時自動');
+                // 1.5秒後に強制保存を試みる
+                setTimeout(() => {
+                    finalizeRecordSave(title, body);
+                }, 1500);
+            } else {
+                finalizeRecordSave(title, body);
+            }
+        }
+
+        function finalizeRecordSave(title, body) {
+            const now = new Date();
+            const formattedDate = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}`;
+            const formattedTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+            const record = {
+                id: 'rec_' + Date.now(),
+                date: formattedDate,
+                time: formattedTime,
+                title: title || `調査_${formattedTime}`,
+                body: body,
+                lat: currentGPS.latitude,
+                lon: currentGPS.longitude,
+                alt: currentGPS.altitude,
+                acc: currentGPS.accuracy,
+                gpsMethod: currentGPS.method
+            };
+
+            records.unshift(record); // 最新が一番上
+            saveToStorage();
+            renderRecords();
+            updateMapMarkers();
+            clearForm();
+            showToast("レコードを記録しました！");
+        }
+
+        // 入力フォームクリア
+        function clearForm() {
+            document.getElementById('note-title').value = '';
+            document.getElementById('note-body').value = '';
+            document.getElementById('auto-gps-msg').classList.add('hidden');
+            autoGpsTriggered = false;
+
+            // GPS表示のリセット
+            currentGPS = { latitude: null, longitude: null, altitude: null, accuracy: null, timestamp: null, method: 'なし' };
+            document.getElementById('val-lat').textContent = '未取得';
+            document.getElementById('val-lon').textContent = '未取得';
+            document.getElementById('val-alt').textContent = '-';
+            document.getElementById('val-acc').textContent = '-';
+            document.getElementById('gps-time').textContent = '取得時間: --:--:--';
+            document.getElementById('gps-method').textContent = 'トリガー: なし';
+            updateGPSUIStatus('searching');
+            
+            // 次に備えてバックグラウンドで穏やかに取得を開始しておく
+            getGPSLocation(false, 'フォームクリア後');
+        }
+
+        // 特定レコード削除
+        function deleteRecord(id) {
+            records = records.filter(r => r.id !== id);
+            saveToStorage();
+            renderRecords();
+            updateMapMarkers();
+            showToast("レコードを削除しました");
+        }
+
+        // --- ストレージ処理 ---
+        function saveToStorage() {
+            localStorage.setItem('field_notes_data', JSON.stringify(records));
+        }
+
+        function loadFromStorage() {
+            const raw = localStorage.getItem('field_notes_data');
+            if (raw) {
+                try {
+                    records = JSON.parse(raw);
+                } catch(e) {
+                    records = [];
+                }
+            }
+            renderRecords();
+        }
+
+        // 全消去モーダル
+        function confirmClearAll() {
+            if (records.length === 0) {
+                showToast("削除するレコードがありません。");
+                return;
+            }
+            toggleClearModal(true);
+        }
+
+        function toggleClearModal(show) {
+            const modal = document.getElementById('clear-modal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function clearAllRecords() {
+            records = [];
+            saveToStorage();
+            renderRecords();
+            updateMapMarkers();
+            toggleClearModal(false);
+            showToast("すべての記録を完全に消去しました");
+        }
+
+        // --- リストの描画 ---
+        function renderRecords() {
+            const container = document.getElementById('records-list');
+            const noRecords = document.getElementById('no-records');
+            const countBadge = document.getElementById('record-count');
+
+            countBadge.textContent = records.length;
+
+            if (records.length === 0) {
+                container.innerHTML = '';
+                noRecords.classList.remove('hidden');
+                return;
+            }
+
+            noRecords.classList.add('hidden');
+
+            let html = '';
+            records.forEach(r => {
+                const hasValidCoords = r.lat !== null && r.lon !== null;
+                const coordString = hasValidCoords ? `${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}` : '位置情報なし';
+
+                html += `
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2 relative group hover:border-slate-300 transition-colors">
+                        <!-- メタデータ行 -->
+                        <div class="flex flex-wrap items-center justify-between gap-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-mono">${r.date} ${r.time}</span>
+                            </div>
+                            <button onclick="deleteRecord('${r.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded-lg transition-colors" title="削除">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- タイトル -->
+                        <h3 class="font-bold text-slate-800 text-sm leading-snug">${escapeHTML(r.title)}</h3>
+
+                        <!-- メモ本文 -->
+                        <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap bg-white p-2.5 rounded-lg border border-slate-100">${escapeHTML(r.body)}</p>
+
+                        <!-- 位置詳細 -->
+                        <div class="flex flex-wrap items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-dashed border-slate-200">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-500"></i>
+                                <span class="font-mono text-slate-600">${coordString}</span>
+                                ${r.alt && r.alt !== '利用不可' ? `<span class="text-slate-400">| 高度:${r.alt}</span>` : ''}
+                            </span>
+                            <span class="text-slate-400">GPS精度: ${r.acc || '不明'}</span>
+                        </div>
+
+                        <!-- 地図ズーム用ショートカット -->
+                        ${hasValidCoords ? `
+                            <button onclick="focusOnMap(${r.lat}, ${r.lon})" class="absolute bottom-3 right-3 text-[10px] text-emerald-600 hover:underline flex items-center gap-0.5">
+                                <i data-lucide="eye" class="w-3 h-3"></i>地図で見る
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // HTMLエスケープ処理（安全のため）
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- 地図機能 (Leaflet.js) ---
+        function initMap() {
+            // デフォルトは日本付近
+            map = L.map('map').setView([35.6812, 139.7671], 5);
+            
+            // 国土地理院タイル（野外調査に適している標準・淡色地図）またはOpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            updateMapMarkers();
+        }
+
+        function updateMapMarkers() {
+            if (!map) return;
+
+            // 既存マーカーを全消去
+            mapMarkers.forEach(m => map.removeLayer(m));
+            mapMarkers = [];
+
+            const validCoords = records.filter(r => r.lat !== null && r.lon !== null);
+
+            if (validCoords.length === 0) return;
+
+            const latlngs = [];
+
+            validCoords.forEach(r => {
+                const marker = L.marker([r.lat, r.lon]).addTo(map);
+                marker.bindPopup(`
+                    <div class="text-xs space-y-1">
+                        <strong class="text-slate-800">${escapeHTML(r.title)}</strong><br>
+                        <span class="text-slate-400 font-mono">${r.date} ${r.time}</span><br>
+                        <p class="text-slate-600 border-t border-slate-100 pt-1 mt-1">${escapeHTML(r.body.substring(0, 30))}${r.body.length > 30 ? '...' : ''}</p>
+                    </div>
+                `);
+                mapMarkers.push(marker);
+                latlngs.push([r.lat, r.lon]);
+            });
+
+            // 登録座標が複数あれば、全体が収まるように表示範囲をフィット
+            if (latlngs.length > 0) {
+                const bounds = L.latLngBounds(latlngs);
+                map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+            }
+        }
+
+        function focusOnMap(lat, lon) {
+            if (!map) return;
+            map.setView([lat, lon], 16);
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 該当するマーカーを探してポップアップを開く
+            mapMarkers.forEach(m => {
+                const pos = m.getLatLng();
+                if (Math.abs(pos.lat - lat) < 0.0001 && Math.abs(pos.lng - lon) < 0.0001) {
+                    m.openPopup();
+                }
+            });
+        }
+
+        // --- データエクスポート (CSV / JSON) ---
+
+        // CSVエクスポート
+        function exportToCSV() {
+            if (records.length === 0) {
+                showToast("エクスポートするレコードがありません。");
+                return;
+            }
+
+            // CSVヘッダー（カテゴリ項目を削除）
+            const headers = ["ID", "日付", "時間", "地点名", "メモ内容", "緯度", "経度", "高度", "精度", "GPSトリガー"];
+            
+            // CSVレコードの構築
+            const rows = records.map(r => [
+                r.id,
+                r.date,
+                r.time,
+                r.title,
+                r.body.replace(/\r?\n/g, " "), // 改行はスペースに置換
+                r.lat || "",
+                r.lon || "",
+                r.alt || "",
+                r.acc || "",
+                r.gpsMethod || ""
+            ]);
+
+            // UTF-8 BOM付きでExcel文字化け回避
+            const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+            link.setAttribute("download", `field_notes_${dateStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast("CSVファイルを出力しました");
+        }
+
+        // JSONエクスポート
+        function exportToJSON() {
+            if (records.length === 0) {
+                showToast("エクスポートするレコードがありません。");
+                return;
+            }
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(records, null, 2));
+            const link = document.createElement("a");
+            link.setAttribute("href", dataStr);
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+            link.setAttribute("download", `field_notes_${dateStr}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("JSONファイルを出力しました");
+        }
+
+        // JSONインポート
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        // 簡易的なデータ構造の確認
+                        const isValid = imported.every(item => item.id && item.date && item.body);
+                        if (isValid) {
+                            // 既存のレコードに結合（重複回避）
+                            const existingIds = new Set(records.map(r => r.id));
+                            const newRecords = imported.filter(r => !existingIds.has(r.id));
+                            
+                            records = [...newRecords, ...records];
+                            saveToStorage();
+                            renderRecords();
+                            updateMapMarkers();
+                            showToast(`${newRecords.length} 件のレコードを新しくインポートしました。`);
+                        } else {
+                            showToast("ファイルのデータ形式が正しくありません。");
+                        }
+                    } else {
+                        showToast("JSONの構造が配列ではありません。");
+                    }
+                } catch (err) {
+                    showToast("JSONファイルの解析に失敗しました。");
+                }
+                // ファイル入力をリセット
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
