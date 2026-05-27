@@ -74,9 +74,9 @@
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-base font-extrabold text-white">野外調査地理ログ</h1>
-          <span class="bg-[#1C1C22] text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-900/40">v1.6 Photo</span>
+          <span class="bg-[#1C1C22] text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-900/40">v1.7</span>
         </div>
-        <p class="text-[11px] text-[#6B6B76] mt-0.5">GPS 測位・写真・メモ情報 即時蓄積ツール</p>
+        <p class="text-[11px] text-[#6B6B76] mt-0.5">GPS 測位・メモ情報 即時蓄積ツール</p>
       </div>
     </div>
     <div class="flex items-center gap-2.5 bg-[#0A0A0D] p-1.5 rounded-xl border border-[#2A2A2E] self-start md:self-auto">
@@ -112,25 +112,6 @@
               class="w-full min-h-[60px] text-xs p-3 bg-[#0A0A0D] border-2 border-[#4F4F56] rounded-xl focus:outline-none focus:border-emerald-400 text-white transition-all"
               maxlength="100"
             ></textarea>
-          </div>
-
-          <!-- 写真添付 -->
-          <div>
-            <span class="text-[10px] uppercase font-bold text-[#6B6B76] block mb-1.5">写真 (任意)</span>
-            <div class="flex items-center gap-2">
-              <label class="flex items-center justify-center gap-1.5 bg-[#1C1C22] hover:bg-[#2A2A33] border border-[#2A2A2E] text-[#E0E0E0] px-3 py-2.5 rounded-lg cursor-pointer transition-all text-xs font-bold w-full">
-                <i data-lucide="camera" class="w-4 h-4 text-emerald-400"></i> スマホで写真を撮る / 選ぶ
-                <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="handlePhotoSelect(event)">
-              </label>
-            </div>
-            <!-- 写真プレビュー領域 -->
-            <div id="photo-preview-container" class="hidden mt-2 relative w-full h-32 bg-[#0A0A0D] border border-[#2A2A2E] rounded-lg overflow-hidden">
-              <img id="photo-preview" src="" class="w-full h-full object-contain">
-              <button type="button" onclick="clearPhoto()" class="absolute top-1.5 right-1.5 bg-rose-500/80 text-white p-1.5 rounded-md hover:bg-rose-500 backdrop-blur-sm">
-                <i data-lucide="x" class="w-3 h-3"></i>
-              </button>
-              <div class="absolute bottom-1 left-1 bg-black/60 text-[9px] px-1.5 py-0.5 rounded text-gray-300">自動圧縮済み</div>
-            </div>
           </div>
 
           <!-- クイック入力 -->
@@ -235,9 +216,8 @@
             <i data-lucide="file-json" class="w-4 h-4"></i> JSON保存
           </button>
         </div>
-        <div class="text-[10px] text-[#6B6B76] font-mono mt-2 flex justify-between">
-          <span>ファイル名: survey_<span id="display-date-now"></span></span>
-          <span class="text-orange-400">※写真はJSON形式のみに含まれます</span>
+        <div class="text-[10px] text-[#6B6B76] font-mono mt-2">
+          ファイル名: survey_<span id="display-date-now"></span>
         </div>
       </div>
     </div>
@@ -262,9 +242,9 @@
               <i data-lucide="info" class="w-4 h-4"></i> 基本的な使い方
             </h3>
             <ol class="list-decimal list-inside space-y-1.5 ml-1 text-[#8E8E9F]">
-              <li>調査中にメモを入力し、必要に応じて<strong>「写真を撮る」</strong>ボタンから画像を添付します。</li>
-              <li><strong>「この地点を記録する」</strong>をタップすると、地図にピンが追加されデータが保存されます。</li>
-              <li>データは端末のブラウザに<strong>自動保存</strong>されます。オフラインやブラウザ終了時もデータは消失しません。</li>
+              <li>調査中にメモを入力して<strong>「この地点を記録する」</strong>をタップします。</li>
+              <li>地図に記録ピンが即時追加され、リストにデータが追加されます。</li>
+              <li>入力中のメモや記録データは、端末のブラウザに<strong>自動保存</strong>されます。オフラインやブラウザ終了時もデータは消失しません。</li>
               <li>「CSV保存」や「JSON保存」をタップすると、ファイルとして端末にダウンロードできます。</li>
             </ol>
           </section>
@@ -280,24 +260,24 @@
             <ul class="list-disc list-inside space-y-1.5 ml-1 text-[#8E8E9F]">
               <li>このHTMLファイルをそのままスマホに転送して開いた場合（URLが <code class="bg-[#1C1C22] px-1 py-0.5 rounded">file:///</code> で始まる場合）、GPS機能はブロックされます。</li>
               <li>スマホで外に持ち出して使う場合は、このHTMLファイルを <strong>GitHub Pages</strong> や <strong>Netlify Drop</strong> などの無料ホスティングサービスにアップロードし、そのURLにアクセスしてご利用ください。</li>
-              <li><span class="text-xs">※擬似モードでの地図タップによる座標指定や、写真の添付・保存機能はローカル環境のままでも完全に動作します。</span></li>
+              <li><span class="text-xs">※擬似モードでの地図タップによる座標指定や、データの保存・出力機能はローカル環境のままでも完全に動作します。</span></li>
             </ul>
           </section>
 
           <!-- 安全な運用と保存件数 -->
           <section>
             <h3 class="text-blue-400 font-bold flex items-center gap-1.5 mb-2">
-              <i data-lucide="database" class="w-4 h-4"></i> 写真の添付と保存容量の限界について
+              <i data-lucide="database" class="w-4 h-4"></i> 保存件数と安全な運用について
             </h3>
             <p class="text-[#8E8E9F] mb-2">
-              データはブラウザの「ローカルストレージ（上限約5MB）」に保存されます。添付された写真は自動的に軽量サイズに圧縮されますが、<strong>写真付きの記録を保存できるのは「約50件〜100件」が限界</strong>です。容量を超えると保存できなくなります。
+              データはブラウザの「ローカルストレージ」に保存されます。容量的には約5,000〜10,000件以上保存可能ですが、<strong>スマホの動作が重くなるのを防ぐため、1回の調査につき「500〜1,000件」を目安</strong>としてください。
             </p>
             <div class="bg-[#16161A] p-4 rounded-xl border border-[#2A2A2E] mt-3">
               <p class="font-bold text-white mb-2">💡 おすすめの安全な運用ルーティン</p>
               <ol class="list-decimal list-inside space-y-2 text-[#8E8E9F]">
-                <li>写真データを含めてバックアップしたい場合は<strong>「JSON保存」</strong>を行ってください。（※CSVには巨大データとなるため写真は出力されません）</li>
+                <li>調査が終わるごとに<strong>「CSV保存」</strong> または <strong>「JSON保存」</strong> で端末にエクスポートする。</li>
                 <li>ダウンロードしたファイルをクラウドやPC等にバックアップする。</li>
-                <li>バックアップの確認後、アプリ内の<strong>「全消去」</strong>ボタンを押してリストを空っぽにし、ストレージ容量を回復させる。</li>
+                <li>バックアップの確認後、アプリ内の<strong>「全消去」</strong>ボタンを押してリストを空っぽにし、翌日の調査に備える。</li>
               </ol>
             </div>
           </section>
@@ -318,8 +298,7 @@
       searchQuery: '',
       selectedRecordId: null,
       editingRecordId: null,
-      lastGpsRefreshTime: 0,
-      currentPhoto: null // 追加: 撮影された写真のBase64データ
+      lastGpsRefreshTime: 0
     };
 
     let map = null;
@@ -396,58 +375,6 @@
       });
     }
 
-    // === Photo Handling ===
-    window.handlePhotoSelect = (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          // 画像をCanvasを利用して圧縮・リサイズ (長辺最大600px)
-          const canvas = document.createElement('canvas');
-          const MAX_SIZE = 600;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height *= MAX_SIZE / width;
-              width = MAX_SIZE;
-            }
-          } else {
-            if (height > MAX_SIZE) {
-              width *= MAX_SIZE / height;
-              height = MAX_SIZE;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // 軽量なJPEGとしてBase64化 (画質0.6)
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-          state.currentPhoto = dataUrl;
-
-          // プレビュー表示
-          document.getElementById('photo-preview').src = dataUrl;
-          document.getElementById('photo-preview-container').classList.remove('hidden');
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    };
-
-    window.clearPhoto = () => {
-      state.currentPhoto = null;
-      document.getElementById('photo-input').value = '';
-      document.getElementById('photo-preview').src = '';
-      document.getElementById('photo-preview-container').classList.add('hidden');
-    };
-
     // === Core Logic ===
     function handleFormSubmit(e) {
       e.preventDefault();
@@ -461,8 +388,7 @@
         latitude: state.currentLocation.lat,
         longitude: state.currentLocation.lng,
         accuracy: state.currentLocation.accuracy,
-        memo: memoInput.value.trim(),
-        photo: state.currentPhoto || null // 写真をレコードに追加
+        memo: memoInput.value.trim()
       };
       
       // 一時的にレコードを追加して保存を試みる
@@ -472,7 +398,6 @@
         // 保存成功時の処理
         memoInput.value = '';
         localStorage.removeItem('survey_draft_memo');
-        clearPhoto(); // プレビューをクリア
         state.selectedRecordId = newRecord.id;
         showToast(`調査地点 (#${state.records.length}) を保存しました！`, "success");
         render();
@@ -557,7 +482,7 @@
 
     // === List Interactions ===
     window.selectRecord = (id) => {
-      if (event.target.tagName.toLowerCase() === 'textarea' || event.target.tagName.toLowerCase() === 'button' || event.target.closest('button') || event.target.tagName.toLowerCase() === 'img') {
+      if (event.target.tagName.toLowerCase() === 'textarea' || event.target.tagName.toLowerCase() === 'button' || event.target.closest('button')) {
         return;
       }
       state.selectedRecordId = id;
@@ -670,13 +595,9 @@
         
         const rIcon = L.divIcon({ html: markerHtml, className: '', iconSize: [28, 34], iconAnchor: [14, 34], popupAnchor: [0, -34] });
         
-        // 写真があればポップアップに表示
-        const photoHtml = record.photo ? `<div style="margin-top:6px; margin-bottom:6px; border-radius:6px; overflow:hidden; border:1px solid #3F3F46;"><img src="${record.photo}" style="width:100%; max-height:120px; object-fit:cover; display:block;"></div>` : '';
-
         const popupContent = `
-          <div style="font-family:sans-serif; color:#E0E0E0; min-width:160px; max-width:200px; padding:4px;">
+          <div style="font-family:sans-serif; color:#E0E0E0; min-width:150px; padding:4px;">
             <div style="font-size:10px; color:#9CA3AF; margin-bottom:4px; border-bottom:1px solid #3F3F46; padding-bottom:4px;">${record.formattedDate}</div>
-            ${photoHtml}
             <div style="font-size:12px; font-weight:bold; margin-bottom:6px; color: #FFFFFF; word-break:break-all;">${record.memo || '（メモなし）'}</div>
           </div>
         `;
@@ -780,13 +701,6 @@
           editHtml = `<div class="mt-1 text-xs text-white whitespace-pre-wrap">${safeMemo || '<span class="italic text-[#4F4F56]">メモなし</span>'}</div>`;
         }
 
-        // リストへの写真プレビュー追加
-        const listPhotoHtml = record.photo ? `
-          <div class="mt-2 rounded-lg overflow-hidden border border-[#2A2A2E] w-fit">
-            <img src="${record.photo}" class="max-h-24 w-auto object-cover" onclick="window.open('${record.photo}', '_blank')">
-          </div>
-        ` : '';
-
         return `
           <div onclick="selectRecord('${record.id}')" class="p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-[#11221D] border-emerald-500' : 'bg-[#1C1C22] border-[#2A2A2E] hover:border-[#3F3F46]'}">
             <div class="flex justify-between items-start">
@@ -857,9 +771,9 @@
 
     window.exportCSV = () => {
       if (state.records.length === 0) return showToast("エクスポートするデータがありません。", "warning");
-      // CSVには巨大データとなるため、写真は「あり」「なし」のフラグのみ出力する
-      const headers = ["ID", "記録日時", "緯度", "経度", "精度/m", "写真添付", "メモ"].join(",");
-      const rows = [...state.records].reverse().map(r => `"${r.id}","${r.formattedDate}",${r.latitude},${r.longitude},${r.accuracy ?? ""},"${r.photo ? 'あり' : 'なし'}","${(r.memo || "").replace(/"/g, '""')}"`);
+      const headers = ["ID", "記録日時", "緯度", "経度", "精度/m", "メモ"].join(",");
+      // 古い順で出力
+      const rows = [...state.records].reverse().map(r => `"${r.id}","${r.formattedDate}",${r.latitude},${r.longitude},${r.accuracy ?? ""},"${(r.memo || "").replace(/"/g, '""')}"`);
       const csvContent = "\uFEFF" + [headers, ...rows].join("\n");
       downloadFile(csvContent, `survey_${formatDateFile()}.csv`, "text/csv;charset=utf-8;");
     };
