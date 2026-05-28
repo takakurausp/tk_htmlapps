@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Map Viewer</title>
+
+    <!-- 地図ライブラリ：Leaflet.js の CSS と JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- CSV解析ライブラリ：PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        /* 画面全体のレイアウト設定 */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+        }
+        #header {
+            padding: 10px 15px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        #map {
+            width: 100%;
+            flex-grow: 1;
+            min-height: 300px;
+            z-index: 1;
+        }
+        
+        /* --- マーカーのスタイル --- */
+        /* 数値入りマーカー */
+        .numeric-icon-container {
+            /* Leafletのデフォルト背景などを消す */
+            background: none;
+            border: none;
+        }
+        .numeric-icon-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            /* 背景色に関わらず文字を読みやすくするための黒い縁取り */
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+        }
+
+        /* 数値に変換できないデータ用のアイコン（四角形） */
+        .non-numeric-icon {
+            background-color: #444;
+            border: 2px solid #fff;
+            box-shadow: 0 0 3px rgba(0,0,0,0.5);
+            border-radius: 2px;
+        }
+
+        /* メッセージ表示用 */
+        #message-area {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .error-text { color: #d32f2f; }
+        .success-text { color: #2e7d32; }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <div>
+            <strong>ファイルを選択：</strong>
+            <input type="file" id="csvFileInput" accept=".csv" />
+        </div>
+        <div id="message-area"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // --- 1. 地図の初期化 ---
+        const map = L.map('map').setView([35.0, 136.0], 5);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        let markerGroup = L.featureGroup().addTo(map);
+        const messageArea = document.getElementById('message-area');
+
+        // --- 2. ファイル読み込み処理 ---
+        const fileInput = document.getElementById('csvFileInput');
+
+        // ファイルが選択された時に実行
+        fileInput.addEventListener('change', parseFile);
+
+        function parseFile() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            showMessage("読み込み中...", "#333");
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                encoding: "UTF-8", // UTF-8に固定
+                complete: function(results) {
+                    processAndPlotData(results.data);
+                },
+                error: function(err) {
+                    showMessage("解析エラー: " + err.message, "error");
+                }
+            });
+        }
+
+        function showMessage(text, type) {
+            messageArea.innerText = text;
+            messageArea.className = type === "error" ? "error-text" : (type === "success" ? "success-text" : "");
+        }
+
+        // --- 3. データの解析と図示処理 ---
+        function processAndPlotData(data) {
+            markerGroup.clearLayers();
+            
+            if (!data || data.length === 0) {
+                showMessage("データが空か、正しく読み込めませんでした。", "error");
+                return;
+            }
+
+            // 列名の揺れに対応するため、キーワードで列を探す
+            const keys = Object.keys(data[0]);
+            const latKey = keys.find(k => k.includes('緯度') || k.toLowerCase().includes('lat'));
+            const lngKey = keys.find(k => k.includes('経度') || k.toLowerCase().includes('lon') || k.toLowerCase().includes('lng'));
+            const memoKey = keys.find(k => k.includes('メモ') || k.toLowerCase().includes('memo')) || keys[5]; 
+            const timeKey = keys.find(k => k.includes('日時') || k.includes('時間') || k.toLowerCase().includes('time')) || keys[1];
+
+            if (!latKey || !lngKey) {
+                showMessage("「緯度」「経度」の列が見つかりません。", "error");
+                return;
+            }
+
+            let validPoints = [];
+            let numericValues = [];
+
+            // データの整理
+            data.forEach((row) => {
+                const lat = parseFloat(row[latKey]);
+                const lng = parseFloat(row[lngKey]);
+                const memo = row[memoKey];
+                const datetime = row[timeKey];
+
+                if (isNaN(lat) || isNaN(lng)) return; // 座標が無効な行はスキップ
+
+                const memoStr = memo ? String(memo).trim() : "";
+                const parsedMemo = parseFloat(memoStr);
+                const isNumeric = !isNaN(parsedMemo) && memoStr !== "";
+
+                if (isNumeric) {
+                    numericValues.push(parsedMemo);
+                }
+
+                validPoints.push({ lat, lng, memo: memoStr, datetime, isNumeric, parsedMemo });
+            });
+
+            if (validPoints.length === 0) {
+                showMessage("有効な座標データが見つかりませんでした。", "error");
+                return;
+            }
+
+            // 最小値と最大値を取得
+            const minMemo = numericValues.length > 0 ? Math.min(...numericValues) : 0;
+            const maxMemo = numericValues.length > 0 ? Math.max(...numericValues) : 0;
+
+            // マーカーの配置
+            validPoints.forEach(pt => {
+                let marker;
+                const popupContent = `
+                    <div style="font-size: 14px; min-width: 150px;">
+                        <b>記録日時:</b> ${pt.datetime || '不明'}<br>
+                        <b>メモ:</b> ${pt.memo}
+                    </div>
+                `;
+
+                if (pt.isNumeric) {
+                    // 数値データ：青(小) → 赤(大)のグラデーション
+                    let hue = 240; 
+                    if (maxMemo > minMemo) {
+                        const ratio = (pt.parsedMemo - minMemo) / (maxMemo - minMemo);
+                        hue = 240 * (1 - ratio); 
+                    }
+                    const color = `hsl(${hue}, 100%, 50%)`;
+
+                    // L.divIcon を使ってHTMLでマーカーを生成し、中に数値を入れる
+                    const numericIcon = L.divIcon({
+                        className: 'numeric-icon-container',
+                        html: `<div class="numeric-icon-circle" style="background-color: ${color};">${pt.parsedMemo}</div>`,
+                        iconSize: [26, 26], // 円のサイズ
+                        iconAnchor: [13, 13] // 円の中心が座標に合うように調整
+                    });
+
+                    marker = L.marker([pt.lat, pt.lng], { icon: numericIcon });
+
+                } else {
+                    // 数値以外：四角形アイコン
+                    const squareIcon = L.divIcon({
+                        className: 'non-numeric-icon',
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    });
+                    marker = L.marker([pt.lat, pt.lng], { icon: squareIcon });
+                }
+
+                marker.bindPopup(popupContent);
+                markerGroup.addLayer(marker);
+            });
+
+            // 地図の表示範囲を自動調整
+            map.fitBounds(markerGroup.getBounds(), { padding: [30, 30] });
+            setTimeout(() => map.invalidateSize(), 100); 
+
+            showMessage(`${validPoints.length} 件のデータを表示しました。`, "success");
+        }
+    </script>
+</body>
+</html>
