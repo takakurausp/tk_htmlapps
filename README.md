@@ -8,7 +8,7 @@
 
 ## 🚀 収録アプリ一覧
 
-### 1. 🧭 野外調査メモ (Field Work Pad)
+### 1. 🧭 野外調査メモ (Field Work Pad) [起動](https://takakurausp.github.io/tk_htmlapps/fw_pad.html)
 
 野外調査やフィールドワークでの記録に特化した、スマートフォン最適化 of のデータロガーです。
 
@@ -24,7 +24,7 @@
         
 *   **ファイル名**: `fw_pad.html`
     
-### 2. 🔎 野外調査メモのビューワー (Field Work Pad Viewer)
+### 2. 🔎 野外調査メモのビューワー (Field Work Pad Viewer) [起動](https://takakurausp.github.io/tk_htmlapps/fwp-viewer.html)
 
 上記野外調査メモアプリで作成したデータの簡易ビューワーです。
 
