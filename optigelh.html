@@ -41,6 +41,15 @@
     }
     .zoom-icon { color: #cbd5e1; }
     
+    .histogram-container {
+      position: absolute; left: 16px; width: 128px; height: 64px;
+      background-color: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px; z-index: 15; pointer-events: none;
+    }
+    .histogram-container canvas { width: 100%; height: 100%; display: block; }
+    #live-histogram-container { bottom: 120px; }
+    #settings-histogram-container { bottom: 16px; }
+
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background-color: rgba(0, 0, 0, 0.95); backdrop-filter: blur(5px);
@@ -60,30 +69,6 @@
     #settings-canvas {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       width: 100%; height: 100%; object-fit: contain;
-    }
-
-    /* ヒストグラムコンテナ */
-    .histogram-container {
-      position: absolute;
-      left: 16px;
-      width: 128px;
-      height: 64px;
-      background-color: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      z-index: 15;
-      pointer-events: none;
-    }
-    .histogram-container canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    #live-histogram-container {
-      bottom: 160px; /* ライブ画面はフッターコントロールを避ける */
-    }
-    #settings-histogram-container {
-      bottom: 16px; /* 設定画面はプレビューの最下部でOK */
     }
 
     .settings-controls {
@@ -120,7 +105,6 @@
       padding: 24px; text-align: center;
     }
 
-    /* トーストメッセージ */
     #toast-container {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
       background-color: rgba(30, 41, 59, 0.95); color: #fff;
@@ -172,17 +156,21 @@
 
   <header>
     <h1 class="text-lg font-bold text-blue-400">OptiGelH</h1>
-    <button id="btn-open-settings" class="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-md disabled:opacity-50">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-      設定
-    </button>
+    <div class="flex gap-2">
+      <button id="btn-toggle-peaking" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition-colors text-xs sm:text-sm shadow-md">
+        ピーキング: OFF
+      </button>
+      <button id="btn-open-settings" class="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-md disabled:opacity-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        設定
+      </button>
+    </div>
   </header>
 
   <video id="video" autoplay playsinline muted class="hidden"></video>
   
   <div id="main-content">
     <canvas id="live-canvas"></canvas>
-    <!-- ライブプレビュー用ヒストグラム -->
     <div id="live-histogram-container" class="histogram-container">
       <canvas id="live-histogram-canvas" width="256" height="64"></canvas>
     </div>
@@ -198,25 +186,21 @@
     <div id="progress-container"><div id="progress-bar"></div></div>
     
     <div class="w-full flex justify-between items-center max-w-md px-2">
-      <!-- 左：ステータス -->
       <div class="flex-1 text-left overflow-hidden">
         <div id="status-text" class="text-[10px] sm:text-xs text-slate-300 font-mono drop-shadow-md whitespace-nowrap overflow-hidden text-ellipsis">待機中</div>
       </div>
       
-      <!-- 中央：撮影ボタン -->
       <div class="flex-shrink-0 mx-2 sm:mx-4 flex justify-center items-center">
         <button id="btn-capture" class="w-16 h-16 sm:w-20 sm:h-20 bg-red-500 hover:bg-red-600 border-4 border-white rounded-full shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-transform transform active:scale-90 disabled:opacity-50 disabled:active:scale-100">
         </button>
       </div>
 
-      <!-- 右：スタック枚数 -->
       <div class="flex-1 text-right overflow-hidden">
         <span id="capture-badge" class="text-[10px] sm:text-xs font-bold text-white bg-black/50 px-2 py-1 rounded inline-block whitespace-nowrap">スタック: 1枚</span>
       </div>
     </div>
   </div>
 
-  <!-- 詳細設定モーダル -->
   <div id="settings-modal" class="modal-overlay">
     <div class="modal-header">
       <h2 class="text-lg font-bold text-blue-400">画像処理設定</h2>
@@ -227,7 +211,6 @@
     
     <div id="settings-preview-container">
       <canvas id="settings-canvas"></canvas>
-      <!-- 設定プレビュー用ヒストグラム -->
       <div id="settings-histogram-container" class="histogram-container">
         <canvas id="settings-histogram-canvas" width="256" height="64"></canvas>
       </div>
@@ -235,7 +218,6 @@
     
     <div class="settings-controls">
       <div class="max-w-md mx-auto">
-        <!-- ★追加：抽出チャンネル選択 -->
         <div class="mb-5">
           <div class="flex justify-between items-end mb-2">
             <label class="text-sm font-medium text-slate-200">抽出チャンネル</label>
@@ -274,7 +256,6 @@
     </div>
   </div>
 
-  <!-- 撮影結果モーダル -->
   <div id="result-modal" class="modal-overlay">
     <div class="modal-header">
       <h2 class="text-lg font-bold text-green-400">高画質撮影完了</h2>
@@ -355,10 +336,11 @@
     const errorText = document.getElementById('camera-error-text');
     const btnRetryCamera = document.getElementById('btn-retry-camera');
 
-    // 追加：チャンネル選択用ボタン
+    // チャンネル選択ボタン、ピーキングボタン
     const btnChR = document.getElementById('btn-ch-r');
     const btnChG = document.getElementById('btn-ch-g');
     const btnChRGB = document.getElementById('btn-ch-rgb');
+    const btnTogglePeaking = document.getElementById('btn-toggle-peaking');
 
     let animationId = null;
     let isCapturing = false;
@@ -368,78 +350,10 @@
     let videoTrack = null;
     let currentDataURL = null; 
 
-    // --- ★追加：PNGメタデータ(tEXtチャンク)追加用ユーティリティ ---
-    const makeCRCTable = function(){
-      let c;
-      let crcTable = [];
-      for(let n =0; n < 256; n++){
-        c = n;
-        for(let k =0; k < 8; k++){
-          c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
-        }
-        crcTable[n] = c;
-      }
-      return crcTable;
-    };
-    const crcTable = makeCRCTable();
+    // --- メモリエフェクト用輝度キャッシュバッファ ---
+    let luminanceBuffer = null;
 
-    const crc32 = function(buf) {
-      let crc = 0 ^ (-1);
-      for (let i = 0; i < buf.length; i++ ) {
-        crc = (crc >>> 8) ^ crcTable[(crc ^ buf[i]) & 0xFF];
-      }
-      return (crc ^ (-1)) >>> 0;
-    };
-
-    function createTextChunk(keyword, text) {
-      // テキストをUTF-8でエンコード
-      const encoder = new TextEncoder();
-      const keywordBuf = encoder.encode(keyword);
-      const textBuf = encoder.encode(text);
-      
-      const length = keywordBuf.length + 1 + textBuf.length;
-      const chunk = new Uint8Array(4 + 4 + length + 4);
-      const view = new DataView(chunk.buffer);
-      
-      view.setUint32(0, length); // Length
-      // Type 'tEXt'
-      chunk[4] = 116; chunk[5] = 69; chunk[6] = 88; chunk[7] = 116; 
-      
-      let offset = 8;
-      chunk.set(keywordBuf, offset);
-      offset += keywordBuf.length;
-      chunk[offset++] = 0; // NULL separator
-      chunk.set(textBuf, offset);
-      
-      const crcBuf = chunk.slice(4, 4 + 4 + length);
-      const crcValue = crc32(crcBuf);
-      view.setUint32(4 + 4 + length, crcValue); // CRC
-      
-      return chunk;
-    }
-
-    function insertChunks(pngArrayBuffer, chunks) {
-      const original = new Uint8Array(pngArrayBuffer);
-      const offset = 33; // PNGシグネチャ(8) + IHDRチャンク(25) の直後に挿入
-      if (original.length < offset) return pngArrayBuffer;
-      
-      let totalChunksLen = 0;
-      chunks.forEach(c => totalChunksLen += c.length);
-      
-      const result = new Uint8Array(original.length + totalChunksLen);
-      result.set(original.slice(0, offset), 0);
-      
-      let currentOffset = offset;
-      chunks.forEach(c => {
-          result.set(c, currentOffset);
-          currentOffset += c.length;
-      });
-      
-      result.set(original.slice(offset), currentOffset);
-      return result.buffer;
-    }
-    // -----------------------------------------------------------
-
+    // トースト機能
     let toastTimeout = null;
     function showToast(message) {
       const toast = document.getElementById('toast-container');
@@ -449,9 +363,9 @@
       toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
+    // 設定管理 (localStorage)
     const STORAGE_KEY = 'astroCameraSettings';
-    // ★追加: channelの初期値を 'R' に設定
-    const defaultParams = { th: 0, c: 1.0, stackCount: 1, zoom: 1.0, channel: 'R' };
+    const defaultParams = { th: 0, c: 1.0, stackCount: 1, zoom: 1.0, channel: 'R', peaking: false };
     let params = { ...defaultParams };
 
     function loadSettings() {
@@ -471,24 +385,37 @@
     valStack.textContent = params.stackCount + " 枚";
     captureBadge.textContent = `スタック: ${params.stackCount}枚`;
 
-    // ★追加: チャンネルUIの更新関数
+    // チャンネル選択UI更新
     function updateChannelUI() {
-      btnChR.className = params.channel === 'R' 
-        ? "flex-1 py-1.5 rounded text-sm font-bold bg-red-600 text-white shadow" 
-        : "flex-1 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700";
-      btnChG.className = params.channel === 'G' 
-        ? "flex-1 py-1.5 rounded text-sm font-bold bg-green-600 text-white shadow" 
-        : "flex-1 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700";
-      btnChRGB.className = params.channel === 'RGB' 
-        ? "flex-1 py-1.5 rounded text-sm font-bold bg-blue-600 text-white shadow" 
-        : "flex-1 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700";
+      btnChR.className = params.channel === 'R' ? "flex-1 py-1.5 rounded text-sm font-bold bg-red-600 text-white shadow" : "flex-1 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700";
+      btnChG.className = params.channel === 'G' ? "flex-1 py-1.5 rounded text-sm font-bold bg-green-600 text-white shadow" : "flex-1 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700";
+      btnChRGB.className = params.channel === 'RGB' ? "flex-1 py-1.5 rounded text-sm font-bold bg-blue-600 text-white shadow" : "flex-1 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-700";
     }
     updateChannelUI();
 
-    // ★追加: チャンネルボタンのイベントリスナー
+    // ピーキングUI更新
+    function updatePeakingUI() {
+      if (params.peaking) {
+        btnTogglePeaking.textContent = "ピーキング: ON";
+        btnTogglePeaking.className = "bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg transition-colors text-xs sm:text-sm shadow-md font-bold";
+      } else {
+        btnTogglePeaking.textContent = "ピーキング: OFF";
+        btnTogglePeaking.className = "bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition-colors text-xs sm:text-sm shadow-md";
+      }
+    }
+    updatePeakingUI();
+
+    // ボタンリスナー
     btnChR.addEventListener('click', () => { params.channel = 'R'; updateChannelUI(); updateSettingsPreview(); saveSettings(); });
     btnChG.addEventListener('click', () => { params.channel = 'G'; updateChannelUI(); updateSettingsPreview(); saveSettings(); });
     btnChRGB.addEventListener('click', () => { params.channel = 'RGB'; updateChannelUI(); updateSettingsPreview(); saveSettings(); });
+    
+    btnTogglePeaking.addEventListener('click', () => { 
+      params.peaking = !params.peaking; 
+      updatePeakingUI(); 
+      saveSettings(); 
+      if (isSettingsOpen) updateSettingsPreview();
+    });
 
     function setupZoomControls(track) {
       if (!track || typeof track.getCapabilities !== 'function') return;
@@ -546,22 +473,20 @@
         { video: { facingMode: { ideal: "environment" } }, audio: false },
         { video: true, audio: false }
       ];
-
       for (let i = 0; i < constraintTries.length; i++) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia(constraintTries[i]);
           handleCameraSuccess(stream);
           return; 
         } catch (err) {
-          if (i === constraintTries.length - 1) {
-             showCameraError(err);
-          }
+          if (i === constraintTries.length - 1) showCameraError(err);
         }
       }
     }
 
     btnRetryCamera.addEventListener('click', startCamera);
 
+    // 画像処理 (R, G, RGBの分岐切り替え対応)
     function applyImageProcessing(imageData) {
       const data = imageData.data;
       const th = params.th;
@@ -569,10 +494,7 @@
       const ch = params.channel || 'R';
 
       for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-
+        let r = data[i]; let g = data[i + 1]; let b = data[i + 2];
         if (ch === 'R') {
           let val = (r - th) * c;
           if (val < 0) val = 0; if (val > 255) val = 255;
@@ -582,9 +504,7 @@
           if (val < 0) val = 0; if (val > 255) val = 255;
           data[i] = val; data[i + 1] = val; data[i + 2] = val;
         } else {
-          let newR = (r - th) * c;
-          let newG = (g - th) * c;
-          let newB = (b - th) * c;
+          let newR = (r - th) * c; let newG = (g - th) * c; let newB = (b - th) * c;
           if (newR < 0) newR = 0; if (newR > 255) newR = 255;
           if (newG < 0) newG = 0; if (newG > 255) newG = 255;
           if (newB < 0) newB = 0; if (newB > 255) newB = 255;
@@ -593,40 +513,53 @@
       }
     }
 
-    // ヒストグラム描画処理
+    // ★追加: 高速かつメモリ効率の良いフォーカスピーキング処理
+    function applyFocusPeaking(imageData) {
+      const data = imageData.data;
+      const cw = imageData.width; const ch = imageData.height;
+      const totalPixels = cw * ch;
+
+      if (!luminanceBuffer || luminanceBuffer.length !== totalPixels) {
+        luminanceBuffer = new Uint8Array(totalPixels);
+      }
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 4;
+        luminanceBuffer[i] = (data[idx] + data[idx+1] + data[idx+2]) / 3;
+      }
+
+      const threshold = 25; // 輪郭判定の感度
+      for (let y = 0; y < ch - 1; y++) {
+        for (let x = 0; x < cw - 1; x++) {
+          const currentIdx = y * cw + x;
+          const v = luminanceBuffer[currentIdx];
+          const diffX = Math.abs(v - luminanceBuffer[currentIdx + 1]);
+          const diffY = Math.abs(v - luminanceBuffer[currentIdx + cw]);
+
+          if (diffX > threshold || diffY > threshold) {
+            const imgIdx = currentIdx * 4;
+            data[imgIdx] = 255; data[imgIdx+1] = 0; data[imgIdx+2] = 0; // 赤く塗る
+          }
+        }
+      }
+    }
+
+    // ヒストグラム
     function drawHistogram(imageData, targetCanvas, targetCtx) {
       const data = imageData.data;
       const hist = new Uint32Array(256);
       const ch = params.channel || 'R';
       
-      // パフォーマンスのため4ピクセル(16インデックス)ごとに間引いてサンプリング
       for (let i = 0; i < data.length; i += 16) {
-        let val;
-        if (ch === 'RGB') {
-          // RGBの場合は輝度（Luma）を計算してヒストグラムにする
-          val = Math.round((data[i] * 299 + data[i+1] * 587 + data[i+2] * 114) / 1000);
-        } else {
-          // RまたはG（モノクロ化されている）の場合はR成分の値を代表値とする
-          val = data[i];
-        }
+        let val = (ch === 'RGB') ? Math.round((data[i] * 299 + data[i+1] * 587 + data[i+2] * 114) / 1000) : data[i];
         hist[val]++;
       }
-
       let maxCount = 0;
-      // 0(完全な黒)と255(完全な白)はピークが極端になりやすいため、中間調を基準にスケーリング
-      for (let i = 1; i < 255; i++) {
-        if (hist[i] > maxCount) maxCount = hist[i];
-      }
-      if (maxCount === 0) {
-        maxCount = Math.max(hist[0], hist[255], 1);
-      }
+      for (let i = 1; i < 255; i++) { if (hist[i] > maxCount) maxCount = hist[i]; }
+      if (maxCount === 0) maxCount = Math.max(hist[0], hist[255], 1);
 
       targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-
       targetCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      const w = targetCanvas.width / 256;
-      const h = targetCanvas.height;
-
+      const w = targetCanvas.width / 256; const h = targetCanvas.height;
       for (let i = 0; i < 256; i++) {
         const barHeight = (hist[i] / maxCount) * h;
         targetCtx.fillRect(i * w, h - barHeight, w, barHeight);
@@ -637,49 +570,37 @@
     function getPreviewSize(vw, vh) {
       let cw = vw; let ch = vh;
       if (Math.max(vw, vh) > MAX_PREVIEW_SIZE) {
-        if (vw > vh) {
-          ch = Math.floor(vh * (MAX_PREVIEW_SIZE / vw));
-          cw = MAX_PREVIEW_SIZE;
-        } else {
-          cw = Math.floor(vw * (MAX_PREVIEW_SIZE / vh));
-          ch = MAX_PREVIEW_SIZE;
-        }
+        if (vw > vh) { ch = Math.floor(vh * (MAX_PREVIEW_SIZE / vw)); cw = MAX_PREVIEW_SIZE; } 
+        else { cw = Math.floor(vw * (MAX_PREVIEW_SIZE / vh)); ch = MAX_PREVIEW_SIZE; }
       }
       return { cw, ch };
     }
 
     function processLiveFrame() {
       if (video.paused || video.ended || isCapturing || isSettingsOpen || isResultOpen) {
-        if(!isCapturing && !isSettingsOpen && !isResultOpen) {
-           animationId = requestAnimationFrame(processLiveFrame);
-        }
+        if(!isCapturing && !isSettingsOpen && !isResultOpen) animationId = requestAnimationFrame(processLiveFrame);
         return;
       }
-
-      let vw = video.videoWidth;
-      let vh = video.videoHeight;
-      if (vw === 0 || vh === 0) {
-        animationId = requestAnimationFrame(processLiveFrame);
-        return;
-      }
+      let vw = video.videoWidth; let vh = video.videoHeight;
+      if (vw === 0 || vh === 0) { animationId = requestAnimationFrame(processLiveFrame); return; }
 
       const { cw, ch } = getPreviewSize(vw, vh);
-
       if (liveCanvas.width !== cw || liveCanvas.height !== ch) {
-        liveCanvas.width = cw;
-        liveCanvas.height = ch;
-        // 横幅に収めるためにテキストを少し短縮
+        liveCanvas.width = cw; liveCanvas.height = ch;
         statusText.textContent = `待機中 (${vw}x${vh})`;
       }
 
       liveCtx.drawImage(video, 0, 0, cw, ch);
       const imageData = liveCtx.getImageData(0, 0, cw, ch);
       applyImageProcessing(imageData);
-      liveCtx.putImageData(imageData, 0, 0);
-
-      // ヒストグラムを描画
+      
+      // 先にピュアな画像でヒストグラムを計算 (ピーキングに邪魔されない)
       drawHistogram(imageData, liveHistCanvas, liveHistCtx);
 
+      // ピーキングONの場合のみ上書き適用
+      if (params.peaking) applyFocusPeaking(imageData);
+      
+      liveCtx.putImageData(imageData, 0, 0);
       animationId = requestAnimationFrame(processLiveFrame);
     }
 
@@ -688,8 +609,7 @@
       settingsModal.classList.add('open');
       if (video.videoWidth > 0) {
         const { cw, ch } = getPreviewSize(video.videoWidth, video.videoHeight);
-        settingsCanvas.width = cw;
-        settingsCanvas.height = ch;
+        settingsCanvas.width = cw; settingsCanvas.height = ch;
         settingsCtx.drawImage(video, 0, 0, cw, ch);
         rawSnapshotData = settingsCtx.getImageData(0, 0, cw, ch);
         updateSettingsPreview();
@@ -704,102 +624,71 @@
 
     function updateSettingsPreview() {
       if (!rawSnapshotData) return;
-      const copyData = new ImageData(
-        new Uint8ClampedArray(rawSnapshotData.data),
-        rawSnapshotData.width,
-        rawSnapshotData.height
-      );
+      const copyData = new ImageData(new Uint8ClampedArray(rawSnapshotData.data), rawSnapshotData.width, rawSnapshotData.height);
       applyImageProcessing(copyData);
-      settingsCtx.putImageData(copyData, 0, 0);
-      
-      // 設定プレビュー用のヒストグラムも更新
       drawHistogram(copyData, settingsHistCanvas, settingsHistCtx);
+      if (params.peaking) applyFocusPeaking(copyData);
+      settingsCtx.putImageData(copyData, 0, 0);
     }
 
-    sliderTh.addEventListener('input', (e) => {
-      params.th = parseInt(e.target.value);
-      valTh.textContent = params.th;
-      updateSettingsPreview();
-      saveSettings();
-    });
+    // スライダー連動
+    sliderTh.addEventListener('input', (e) => { params.th = parseInt(e.target.value); valTh.textContent = params.th; updateSettingsPreview(); saveSettings(); });
+    sliderC.addEventListener('input', (e) => { params.c = parseFloat(e.target.value); valC.textContent = params.c.toFixed(1); updateSettingsPreview(); saveSettings(); });
+    sliderStack.addEventListener('input', (e) => { params.stackCount = parseInt(e.target.value); valStack.textContent = params.stackCount + " 枚"; captureBadge.textContent = `スタック: ${params.stackCount}枚`; saveSettings(); });
 
-    sliderC.addEventListener('input', (e) => {
-      params.c = parseFloat(e.target.value);
-      valC.textContent = params.c.toFixed(1);
-      updateSettingsPreview();
-      saveSettings();
-    });
-
-    sliderStack.addEventListener('input', (e) => {
-      params.stackCount = parseInt(e.target.value);
-      valStack.textContent = params.stackCount + " 枚";
-      captureBadge.textContent = `スタック: ${params.stackCount}枚`;
-      saveSettings();
-    });
-
-    function generateFilename() {
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0');
-      const min = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-      return `Gel${yy}${mm}${dd}-${hh}${min}${ss}.png`;
+    // PNGメタデータ挿入処理群
+    const makeCRCTable = function(){let c; let crcTable = []; for(let n =0; n < 256; n++){c = n; for(let k =0; k < 8; k++){c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));} crcTable[n] = c;} return crcTable;};
+    const crcTable = makeCRCTable();
+    const crc32 = function(buf) {let crc = 0 ^ (-1); for (let i = 0; i < buf.length; i++ ) {crc = (crc >>> 8) ^ crcTable[(crc ^ buf[i]) & 0xFF];} return (crc ^ (-1)) >>> 0;};
+    function createTextChunk(keyword, text) {
+      const encoder = new TextEncoder(); const keywordBuf = encoder.encode(keyword); const textBuf = encoder.encode(text);
+      const length = keywordBuf.length + 1 + textBuf.length; const chunk = new Uint8Array(4 + 4 + length + 4); const view = new DataView(chunk.buffer);
+      view.setUint32(0, length); chunk[4] = 116; chunk[5] = 69; chunk[6] = 88; chunk[7] = 116;
+      let offset = 8; chunk.set(keywordBuf, offset); offset += keywordBuf.length; chunk[offset++] = 0; chunk.set(textBuf, offset);
+      const crcValue = crc32(chunk.slice(4, 4 + 4 + length)); view.setUint32(4 + 4 + length, crcValue); return chunk;
+    }
+    function insertChunks(pngArrayBuffer, chunks) {
+      const original = new Uint8Array(pngArrayBuffer); const offset = 33; if (original.length < offset) return pngArrayBuffer;
+      let totalChunksLen = 0; chunks.forEach(c => totalChunksLen += c.length);
+      const result = new Uint8Array(original.length + totalChunksLen); result.set(original.slice(0, offset), 0);
+      let currentOffset = offset; chunks.forEach(c => { result.set(c, currentOffset); currentOffset += c.length; });
+      result.set(original.slice(offset), currentOffset); return result.buffer;
     }
 
+    // 撮影タスク
     btnCapture.addEventListener('click', async () => {
       if (isCapturing) return;
-      
-      const fullWidth = video.videoWidth;
-      const fullHeight = video.videoHeight;
+      const fullWidth = video.videoWidth; const fullHeight = video.videoHeight;
       if (fullWidth === 0 || fullHeight === 0) return;
 
-      isCapturing = true;
-      btnCapture.disabled = true;
-      btnOpenSettings.disabled = true;
-      
-      const count = params.stackCount;
-      const totalPixels = fullWidth * fullHeight * 4;
+      isCapturing = true; btnCapture.disabled = true; btnOpenSettings.disabled = true;
+      const count = params.stackCount; const totalPixels = fullWidth * fullHeight * 4;
       
       let accumulator = null;
-      try {
-        accumulator = new Uint32Array(totalPixels);
-      } catch(e) {
-        showToast("メモリ不足のためフル解像度撮影できません。ブラウザを再起動してください。");
-        isCapturing = false;
-        btnCapture.disabled = false;
-        btnOpenSettings.disabled = false;
-        processLiveFrame();
-        return;
+      try { accumulator = new Uint32Array(totalPixels); } catch(e) {
+        showToast("メモリ不足です。ブラウザを再起動してください。");
+        isCapturing = false; btnCapture.disabled = false; btnOpenSettings.disabled = false; processLiveFrame(); return;
       }
 
-      progressContainer.style.display = 'block';
-      progressBar.style.width = '0%';
-      
-      const captureCanvas = document.createElement('canvas');
-      captureCanvas.width = fullWidth;
-      captureCanvas.height = fullHeight;
+      progressContainer.style.display = 'block'; progressBar.style.width = '0%';
+      const captureCanvas = document.createElement('canvas'); captureCanvas.width = fullWidth; captureCanvas.height = fullHeight;
       const captureCtx = captureCanvas.getContext('2d', { willReadFrequently: true });
 
       for (let i = 0; i < count; i++) {
         statusText.textContent = `撮影中... ${i + 1}/${count}`;
         progressBar.style.width = `${((i) / count) * 100}%`;
-        
         await new Promise(resolve => setTimeout(resolve, 150)); 
         
         captureCtx.drawImage(video, 0, 0, fullWidth, fullHeight);
         const frameData = captureCtx.getImageData(0, 0, fullWidth, fullHeight);
         
+        // ★重要: 撮影時はピーキングを一切適用しない (純粋な映像を計算)
         applyImageProcessing(frameData);
         const processedData = frameData.data;
-
-        for (let p = 0; p < totalPixels; p++) {
-           accumulator[p] += processedData[p];
-        }
+        for (let p = 0; p < totalPixels; p++) { accumulator[p] += processedData[p]; }
       }
 
-      statusText.textContent = "画像生成中...";
+      statusText.textContent = "高画質画像を生成中...";
       progressBar.style.width = '100%';
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -810,111 +699,58 @@
         finalImageData.data[p+2] = Math.round(accumulator[p+2] / count);
         finalImageData.data[p+3] = 255;
       }
-
       captureCtx.putImageData(finalImageData, 0, 0);
       
-      // ★修正：メタデータを付与してDataURLを生成する非同期処理
-      const generateImageWithMetadata = () => {
-        return new Promise((resolve, reject) => {
+      // メタデータ埋め込み処理
+      try {
+        const dataURL = await new Promise((resolve, reject) => {
           captureCanvas.toBlob(async (blob) => {
-            if(!blob) return reject(new Error("Blob generation failed"));
+            if(!blob) return reject(new Error());
             try {
               const arrayBuffer = await blob.arrayBuffer();
-              
-              // 撮影時のパラメータをまとめる
               const metaData = {
-                app: "Advanced Astro Camera",
-                datetime: new Date().toISOString(),
-                settings: {
-                  channel: params.channel, // ★追加: チャンネル情報をメタデータにも記録
-                  dehazeTh: params.th,
-                  contrastC: params.c,
-                  stackCount: params.stackCount,
-                  zoom: params.zoom,
-                  resolution: `${fullWidth}x${fullHeight}`
-                }
+                app: "OptiGelH", datetime: new Date().toISOString(),
+                settings: { channel: params.channel, dehazeTh: params.th, contrastC: params.c, stackCount: params.stackCount, zoom: params.zoom, resolution: `${fullWidth}x${fullHeight}` }
               };
-
-              // PNGの Software と Comment にチャンクを挿入
-              const chunkSoftware = createTextChunk("Software", "Advanced Astro Camera");
+              const chunkSoftware = createTextChunk("Software", "OptiGelH");
               const chunkComment = createTextChunk("Comment", JSON.stringify(metaData));
               const newBuffer = insertChunks(arrayBuffer, [chunkSoftware, chunkComment]);
-              
-              const newBlob = new Blob([newBuffer], { type: 'image/png' });
-              
-              // BlobをDataURLに変換して画面表示・保存に備える
               const reader = new FileReader();
               reader.onload = () => resolve(reader.result);
-              reader.onerror = () => reject(new Error("FileReader error"));
-              reader.readAsDataURL(newBlob);
-            } catch(e) {
-              reject(e);
-            }
+              reader.readAsDataURL(new Blob([newBuffer], { type: 'image/png' }));
+            } catch(e) { reject(e); }
           }, 'image/png');
         });
-      };
 
-      try {
-        currentDataURL = await generateImageWithMetadata();
+        currentDataURL = dataURL;
         resultPhoto.src = currentDataURL;
-        
         progressContainer.style.display = 'none';
         statusText.textContent = `待機中 (${fullWidth}x${fullHeight})`;
-        isCapturing = false;
-        btnCapture.disabled = false;
-        btnOpenSettings.disabled = false;
-        
-        isResultOpen = true;
-        resultModal.classList.add('open');
+        isCapturing = false; btnCapture.disabled = false; btnOpenSettings.disabled = false;
+        isResultOpen = true; resultModal.classList.add('open');
       } catch (e) {
-        showToast("画像の生成に失敗しました（容量制限）");
-        isCapturing = false;
-        btnCapture.disabled = false;
-        btnOpenSettings.disabled = false;
-        processLiveFrame();
+        showToast("生成エラーが発生しました");
+        isCapturing = false; btnCapture.disabled = false; btnOpenSettings.disabled = false; processLiveFrame();
       }
-      
       accumulator = null;
     });
 
-    const closeResultModal = () => {
-      isResultOpen = false;
-      resultModal.classList.remove('open');
-      setTimeout(() => { processLiveFrame(); }, 300);
-    };
-
+    const closeResultModal = () => { isResultOpen = false; resultModal.classList.remove('open'); setTimeout(() => { processLiveFrame(); }, 300); };
     btnDiscard.addEventListener('click', closeResultModal);
     btnCloseResult.addEventListener('click', closeResultModal);
     
     btnSaveDownload.addEventListener('click', () => {
       if (!currentDataURL) return;
       try {
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = currentDataURL;
-        a.download = generateFilename();
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-          document.body.removeChild(a);
-          showToast("ダウンロードしました。");
-        }, 100);
-      } catch (err) {
-        showToast("長押し保存画面をご利用ください。");
-      }
+        const a = document.createElement('a'); a.style.display = 'none'; a.href = currentDataURL;
+        a.download = `OptiGelH_${Math.floor(Date.now()/1000)}.png`;
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); showToast("ダウンロードしました。"); }, 100);
+      } catch (err) { showToast("長押し保存画面をご利用ください。"); }
     });
 
-    btnOpenSaveOverlay.addEventListener('click', () => {
-      if (currentDataURL) {
-        overlayPhoto.src = currentDataURL;
-        saveOverlay.style.display = 'flex';
-      }
-    });
-
-    btnCloseSaveOverlay.addEventListener('click', () => {
-      saveOverlay.style.display = 'none';
-    });
+    btnOpenSaveOverlay.addEventListener('click', () => { if (currentDataURL) { overlayPhoto.src = currentDataURL; saveOverlay.style.display = 'flex'; } });
+    btnCloseSaveOverlay.addEventListener('click', () => { saveOverlay.style.display = 'none'; });
 
     startCamera();
   </script>
