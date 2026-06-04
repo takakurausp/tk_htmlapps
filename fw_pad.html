@@ -774,7 +774,10 @@
       const headers = ["ID", "記録日時", "緯度", "経度", "精度/m", "メモ"].join(",");
       // 古い順で出力
       const rows = [...state.records].reverse().map(r => `"${r.id}","${r.formattedDate}",${r.latitude},${r.longitude},${r.accuracy ?? ""},"${(r.memo || "").replace(/"/g, '""')}"`);
-      const csvContent = "\uFEFF" + [headers, ...rows].join("\n");
+      
+      // Excelで認識させるため、BOM (\uFEFF) を先頭に付与し、改行コードを CRLF (\r\n) にする
+      const csvContent = "\uFEFF" + [headers, ...rows].join("\r\n");
+      
       downloadFile(csvContent, `survey_${formatDateFile()}.csv`, "text/csv;charset=utf-8;");
     };
 
