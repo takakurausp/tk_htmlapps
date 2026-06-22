@@ -53,7 +53,25 @@
     *   画像は、圧縮による劣化がないPNGで保存します。撮影パラメータはメタデータに書き込んでいますので、ビューアーなどで確認することができます。
 
 *   **ファイル名**: `optigelh.html`
-  
+
+### 4. 🧬 NCBI GenBank 検索クエリビルダー (NCBI GenBank Query Builder) [起動](https://takakurausp.github.io/tk_htmlapps/ncbi_genbank_query_builder.html "null")
+
+NCBI GenBank（Nucleotideデータベース）の検索キーワード（クエリ）を、GUIで直感的に組み立てられるジェネレーターです。
+
+*   **特徴**:
+    
+    *   和名を入力すると、ワンクリックでGoogleの「[和名] 学名」検索結果へダイレクトにアクセス可能。
+        
+    *   よく使われるモデル生物は、和名を入力した瞬間にラテン学名（Organism）が自動補完されます。
+        
+    *   配列長範囲、分子タイプ、公開日範囲などの柔軟なフィルタリング設定。
+        
+    *   研究に不要なノイズデータ（特許配列、環境サンプル、WGS、TPA）を一括して除外するフィルター設定を装備。
+        
+    *   構築されたクエリ文字列はワンクリックでコピー可能。また、安全なポップアップ回避機能付き「GenBankで検索」ボタンにより、シームレスにNCBI Nucleotideへ検索リクエストを送信できます。
+        
+*   **ファイル名**: `ncbi_genbank_query_builder.html`
+    
 ## 🛠 特徴と設計思想
 
 *   **1ファイル完結 (Single File App)**: 全てのHTML、CSS (Tailwind CSS)、JavaScriptが1つのファイルに統合されています。ダウンロードしてダブルクリックするだけでローカル環境でも動きます。
