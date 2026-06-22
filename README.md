@@ -54,7 +54,7 @@
 
 *   **ファイル名**: `optigelh.html`
 
-### 4. 🧬 NCBI GenBank 検索クエリビルダー (NCBI GenBank Query Builder) [起動](https://takakurausp.github.io/tk_htmlapps/ncbi_genbank_query_builder.html "null")
+### 4. 🧬 NCBI GenBank 検索クエリビルダー (NCBI GenBank Query Builder) [起動](https://takakurausp.github.io/tk_htmlapps/genbank_query_builder.html "null")
 
 NCBI GenBank（Nucleotideデータベース）の検索キーワード（クエリ）を、GUIで直感的に組み立てられるジェネレーターです。
 
