@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCBI GenBank 検索クエリビルダー</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- ヘッダー -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <svg class="w-8 h-8 text-blue-200 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">NCBI GenBank Query Builder</h1>
+                    <p class="text-xs text-blue-100 font-light">手動Google検索＆コピーアシスト付き・検索式ジェネレーター</p>
+                </div>
+            </div>
+            <div class="text-xs bg-blue-900/40 px-3 py-1.5 rounded-lg border border-blue-500/30 text-blue-100 text-center sm:text-right">
+                和名からGoogleへスムーズにアクセス。エラーのない安定した動作を提供します。
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- 入力フォームエリア (左側/8カラム) -->
+            <section class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        検索条件の設定
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">日本語名からGoogle検索を行い、表示された学名をコピーして「学名」欄に入力してください。</p>
+                </div>
+
+                <form id="queryForm" onsubmit="event.preventDefault();" class="space-y-6">
+                    
+                    <!-- 【新設計】常に表示される Google手動検索アシストエリア -->
+                    <div class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100/80">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="japaneseName" class="block text-xs font-semibold text-indigo-900 uppercase tracking-wider flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                生物の和名（Google検索用）
+                            </label>
+                            <span class="text-[10px] text-slate-400 font-normal">例: カラスザメ, ユキバタオヒョウ, イネ</span>
+                        </div>
+                        <div class="space-y-3">
+                            <input type="text" id="japaneseName" autocomplete="off"
+                                class="block w-full rounded-lg border-indigo-200 text-sm focus:border-indigo-500 focus:ring-indigo-500 p-2.5 bg-white border placeholder-slate-400"
+                                placeholder="生物の和名を入力してください..."
+                                oninput="updateSearchAssistButton(this.value)">
+                            
+                            <!-- Google検索ボタン (常に表示・和名入力で連動) -->
+                            <a id="googleSearchBtn" href="https://www.google.com" target="_blank" rel="noopener noreferrer"
+                               class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs py-3 px-4 rounded-lg transition duration-150 flex items-center justify-center gap-2 shadow-sm shadow-indigo-600/10">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                                <span id="googleSearchBtnText">Googleで調べる</span>
+                            </a>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-2">※和名を入力すると、自動的に『[和名] 学名』の検索リンクに変化します。別タブで開き、表示された学名を以下の「学名 (Organism)」欄に貼り付けてください。</p>
+                    </div>
+
+                    <!-- 学名（必須入力） -->
+                    <div>
+                        <label for="organism" class="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                            <span>学名 (Organism) <span class="text-red-500 font-bold">*必須</span></span>
+                            <span class="text-xs text-slate-400 font-normal">例: Homo sapiens, Architeuthis dux</span>
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <input type="text" id="organism" required
+                                class="block w-full rounded-lg border-slate-300 pr-16 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 bg-slate-50 border transition duration-150"
+                                placeholder="学名をコピーしてここに貼り付けてください"
+                                oninput="generateQuery()">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span class="text-slate-400 text-xs font-semibold">[ORGN]</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 遺伝子名/タンパク質名/マーカー -->
+                    <div>
+                        <label for="gene" class="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                            <span>遺伝子名 / キーワード (Gene / Keyword) <span class="text-xs text-slate-400 font-normal">オプション</span></span>
+                            <span class="text-xs text-slate-400 font-normal">例: COI, 16S, rbcL, BRCA1</span>
+                        </label>
+                        <div class="relative rounded-md shadow-sm">
+                            <input type="text" id="gene"
+                                class="block w-full rounded-lg border-slate-300 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 bg-slate-50 border transition duration-150"
+                                placeholder="遺伝子名やキーワードを入力"
+                                oninput="generateQuery()">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span class="text-slate-400 text-xs font-semibold">[Keyword]</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 配列長 (Sequence Length) -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">
+                                配列長範囲 (Sequence Length) <span class="text-xs text-slate-400 font-normal">bp</span>
+                            </label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="lenMin" min="1" placeholder="最小"
+                                    class="block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 bg-slate-50 border transition duration-150"
+                                    oninput="generateQuery()">
+                                <span class="text-slate-400 text-sm">〜</span>
+                                <input type="number" id="lenMax" min="1" placeholder="最大"
+                                    class="block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 bg-slate-50 border transition duration-150"
+                                    oninput="generateQuery()">
+                            </div>
+                        </div>
+
+                        <!-- 分子タイプ -->
+                        <div>
+                            <label for="molType" class="block text-sm font-medium text-slate-700 mb-1">
+                                分子タイプ (Molecule Type)
+                            </label>
+                            <select id="molType"
+                                class="block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 bg-slate-50 border transition duration-150"
+                                onchange="generateQuery()">
+                                <option value="">すべて (All)</option>
+                                <option value="biomol mrna[Properties]">mRNA</option>
+                                <option value="biomol genomic dna rna[Properties]">Genomic DNA / RNA</option>
+                                <option value="biomol rrna[Properties]">rRNA (リボソームRNA)</option>
+                                <option value="biomol trna[Properties]">tRNA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 登録・公開日範囲 (Publication Date) -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            公開日範囲 (Publication Date)
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="relative">
+                                <input type="date" id="dateStart"
+                                    class="block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 bg-slate-50 border transition duration-150"
+                                    onchange="generateQuery()">
+                                <span class="absolute right-3 top-2.5 text-xs text-slate-400 pointer-events-none">開始</span>
+                            </div>
+                            <div class="relative">
+                                <input type="date" id="dateEnd"
+                                    class="block w-full rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 bg-slate-50 border transition duration-150"
+                                    onchange="generateQuery()">
+                                <span class="absolute right-3 top-2.5 text-xs text-slate-400 pointer-events-none">終了</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 除外フィルター設定 (Common Exclusions) -->
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        <span class="block text-sm font-semibold text-slate-800 mb-3 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                            不要なデータの除外 (Exclusions)
+                        </span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="excludePatent" checked
+                                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                    onchange="generateQuery()">
+                                <span class="text-xs text-slate-600">
+                                    <strong class="text-slate-800 block">特許配列を除外</strong>
+                                    NOT "patent"[All Fields]
+                                </span>
+                            </label>
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="excludeEnvUncultured" checked
+                                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                    onchange="generateQuery()">
+                                <span class="text-xs text-slate-600">
+                                    <strong class="text-slate-800 block">環境サンプル・未培養を除外</strong>
+                                    NOT "uncultured"[ORGN] 等
+                                </span>
+                            </label>
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="excludeWGS"
+                                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                    onchange="generateQuery()">
+                                <span class="text-xs text-slate-600">
+                                    <strong class="text-slate-800 block">ショットガン(WGS)を除外</strong>
+                                    NOT "wgs"[Properties]
+                                </span>
+                            </label>
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="excludeTPA"
+                                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                    onchange="generateQuery()">
+                                <span class="text-xs text-slate-600">
+                                    <strong class="text-slate-800 block">第三者アノテーション(TPA)</strong>
+                                    NOT "tpa"[Properties]
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 絞り込みオプション (Target Refinement) -->
+                    <div class="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100/50">
+                        <span class="block text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                            検索結果の高品質化・絞り込み
+                        </span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="refSeqOnly"
+                                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                    onchange="generateQuery()">
+                                <span class="text-xs text-slate-700">
+                                    <strong class="text-indigo-950 block">RefSeq（参照配列）のみ限定</strong>
+                                    AND "refseq"[Filter]
+                                </span>
+                            </label>
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" id="completeSequence"
+                                    class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                    onchange="generateQuery()">
+                                <span class="text-xs text-slate-700">
+                                    <strong class="text-indigo-950 block">完全長のみに絞り込む</strong>
+                                    "complete genome" など
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                </form>
+            </section>
+
+            <!-- 生成結果 & アクションエリア (右側/5カラム) -->
+            <section class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- クエリ出力ボックス -->
+                <div class="bg-slate-900 text-slate-100 rounded-2xl shadow-lg p-6 flex flex-col h-full justify-between border border-slate-800">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                            <h3 class="font-semibold text-sm tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                                生成された検索クエリ
+                            </h3>
+                            <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded">Realtime</span>
+                        </div>
+
+                        <!-- リアルタイム出力テキストプレビュー -->
+                        <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 font-mono text-sm break-all select-all min-h-[140px] max-h-[250px] overflow-y-auto leading-relaxed text-indigo-300 cursor-pointer" 
+                             id="queryOutput" 
+                             title="クリックしてすべて選択" 
+                             onclick="selectText('queryOutput')">
+                            <!-- ここにクエリが出力されます -->
+                        </div>
+                    </div>
+
+                    <!-- 操作ボタンエリア -->
+                    <div class="mt-6 space-y-3">
+                        <!-- コピーボタン -->
+                        <button type="button" onclick="copyQuery()"
+                            class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-xl border border-slate-700 transition duration-150 flex items-center justify-center gap-2 shadow-sm">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                            </svg>
+                            クエリをクリップボードにコピー
+                        </button>
+
+                        <!-- ポップアップブロック自動対応ボタン -->
+                        <button type="button" id="searchBtn" onclick="triggerSearchAction()" disabled
+                            class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-3.5 px-4 rounded-xl transition duration-150 flex items-center justify-center gap-2 shadow-md shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            GenBank (NCBI) で検索
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 使い方ガイド / お役立ち情報 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h4 class="font-semibold text-slate-900 text-sm mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        検索の手順
+                    </h4>
+                    <ol class="text-xs text-slate-600 space-y-2.5 list-decimal pl-4 leading-relaxed">
+                        <li>上の和名欄に調べたい生物の名前を入力する。</li>
+                        <li><strong>「Googleで『[和名] 学名』を検索」</strong>ボタンをクリックする（別タブでGoogle検索が開きます）。</li>
+                        <li>検索結果のトップなどに表示されている学名（例: <i>Architeuthis dux</i>）をコピーする。</li>
+                        <li>コピーした英字をこのページの<strong>「学名 (Organism)」</strong>欄にペーストする。</li>
+                        <li>他の遺伝子名や除外フィルタなどのオプションを選び、<strong>「GenBank (NCBI) で検索」</strong>ボタンを押してURLをコピー、NCBIのページへ移動する。</li>
+                    </ol>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- 安全なフォールバック通知モーダル -->
+    <div id="fallbackModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden transition-all duration-300">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 m-4 shadow-2xl border border-slate-100 transform scale-95 transition-all duration-300">
+            <div class="flex items-start justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-emerald-50 rounded-lg">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">検索URLをコピーしました！</h3>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="mt-4 space-y-3">
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    現在の動作環境（セキュリティ上の制限）により、新しいタブが直接開くのをブラウザが阻止しました。
+                </p>
+                <div class="bg-slate-50 border border-slate-100 rounded-lg p-3 text-xs text-slate-500">
+                    <strong>次のステップ:</strong>
+                    <ol class="list-decimal pl-4 mt-2 space-y-1">
+                        <li>ブラウザで<strong>新しい空のタブ</strong>を開く</li>
+                        <li>アドレスバーを選択して<strong>貼り付ける（Ctrl + V または Cmd + V）</strong></li>
+                        <li>エンターキーを押すとGenBankの検索結果が表示されます</li>
+                    </ol>
+                </div>
+                <div class="text-xs font-mono bg-indigo-50 text-indigo-700 p-2.5 rounded border border-indigo-100 break-all select-all" id="copiedUrlPreview">
+                    <!-- URLプレビュー -->
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-2 justify-end">
+                <button onclick="closeModal()" class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition">
+                    閉じる
+                </button>
+                <a id="modalDirectLink" href="#" target="_blank" rel="noopener noreferrer" onclick="closeModal()"
+                   class="w-full sm:w-auto text-center px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-sm">
+                    一応、新しいタブで開く
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 ease-out z-50">
+        <div class="bg-slate-900 text-white border border-slate-700 px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3">
+            <span class="flex h-2.5 w-2.5 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <p id="toastMessage" class="text-sm font-medium">通知メッセージ</p>
+        </div>
+    </div>
+
+    <!-- フッター -->
+    <footer class="bg-slate-100 border-t border-slate-200 mt-12 py-6">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
+            <p>© GenBank Query Builder - Google Search Assist Edition</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // 代表的な生物用のローカル高速自動入力辞書（よく使われるもののみローカルで超即時に機能）
+        const LOCAL_DICTIONARY = {
+            'ヒト': 'Homo sapiens',
+            '人間': 'Homo sapiens',
+            '大腸菌': 'Escherichia coli',
+            'シロイヌナズナ': 'Arabidopsis thaliana',
+            'イネ': 'Oryza sativa',
+            'マウス': 'Mus musculus',
+            'ハツカネズミ': 'Mus musculus',
+            'ラット': 'Rattus norvegicus',
+            'ショウジョウバエ': 'Drosophila melanogaster',
+            'キイロショウジョウバエ': 'Drosophila melanogaster',
+            '出芽酵母': 'Saccharomyces cerevisiae',
+            '分裂酵母': 'Schizosaccharomyces pombe',
+            '線虫': 'Caenorhabditis elegans',
+            'ゼブラフィッシュ': 'Danio rerio',
+            'アフリカツメガエル': 'Xenopus laevis',
+            'トウモロコシ': 'Zea mays',
+            'ジャガイモ': 'Solanum tuberosum'
+        };
+
+        // ページロード時の初期化
+        window.addEventListener('DOMContentLoaded', () => {
+            updateSearchAssistButton('');
+            generateQuery();
+        });
+
+        // 和名の入力欄が書き換えられたときの「Google検索アシストボタン」の制御
+        function updateSearchAssistButton(val) {
+            const googleSearchBtn = document.getElementById('googleSearchBtn');
+            const googleSearchBtnText = document.getElementById('googleSearchBtnText');
+            const organismInput = document.getElementById('organism');
+
+            const queryText = val.trim();
+
+            if (!queryText) {
+                // 空のとき
+                googleSearchBtn.href = "https://www.google.com";
+                googleSearchBtnText.textContent = "Googleを開く";
+                googleSearchBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                googleSearchBtn.classList.add('bg-slate-400', 'hover:bg-slate-500');
+                return;
+            }
+
+            // 代表的な生物の入力があった場合は、Googleで探すまでもなくローカルで自動アシスト入力する
+            const normalizedKey = queryText.replace(/\s+/g, '');
+            if (LOCAL_DICTIONARY[normalizedKey]) {
+                const sciName = LOCAL_DICTIONARY[normalizedKey];
+                organismInput.value = sciName;
+                animateInputHighlight(organismInput);
+                generateQuery();
+                showToast(`ローカル辞書から自動補完しました: ${sciName}`);
+            }
+
+            // Googleの検索URLを動的に組み立ててボタンにバインド
+            const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(queryText + ' 学名')}`;
+            googleSearchBtn.href = googleSearchUrl;
+            googleSearchBtnText.textContent = `Googleで「${queryText} 学名」を検索`;
+            
+            // ボタンをアクティブなカラーに設定
+            googleSearchBtn.classList.remove('bg-slate-400', 'hover:bg-slate-500');
+            googleSearchBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        }
+
+        // 学名設定時の視覚エフェクト
+        function animateInputHighlight(element) {
+            element.classList.add('border-indigo-500', 'ring-2', 'ring-indigo-300', 'bg-white');
+            element.classList.remove('bg-slate-50');
+            setTimeout(() => {
+                element.classList.remove('ring-2', 'ring-indigo-300');
+            }, 1000);
+        }
+
+        // NCBI検索用URLの構築
+        function getSearchUrl() {
+            const queryText = document.getElementById('queryOutput').textContent;
+            if (!queryText || queryText.includes('構築されます')) {
+                return null;
+            }
+            return `https://www.ncbi.nlm.nih.gov/nucleotide/?term=${encodeURIComponent(queryText)}`;
+        }
+
+        // クエリ自動作成ロジック（NCBI Nucleotide シンタックス）
+        function generateQuery() {
+            const organism = document.getElementById('organism').value.trim();
+            const gene = document.getElementById('gene').value.trim();
+            const lenMin = document.getElementById('lenMin').value.trim();
+            const lenMax = document.getElementById('lenMax').value.trim();
+            const molType = document.getElementById('molType').value;
+            const dateStart = document.getElementById('dateStart').value;
+            const dateEnd = document.getElementById('dateEnd').value;
+            
+            const excludePatent = document.getElementById('excludePatent').checked;
+            const excludeEnvUncultured = document.getElementById('excludeEnvUncultured').checked;
+            const excludeWGS = document.getElementById('excludeWGS').checked;
+            const excludeTPA = document.getElementById('excludeTPA').checked;
+            
+            const refSeqOnly = document.getElementById('refSeqOnly').checked;
+            const completeSequence = document.getElementById('completeSequence').checked;
+
+            const searchBtn = document.getElementById('searchBtn');
+            const queryOutput = document.getElementById('queryOutput');
+
+            if (!organism) {
+                queryOutput.innerHTML = `<span class="text-slate-500 italic">学名 [Organism] を手入力、または上の和名からGoogle検索して貼り付けると、ここにGenBank仕様のクエリが構築されます...</span>`;
+                searchBtn.disabled = true;
+                return;
+            }
+
+            let queryParts = [];
+
+            // 1. 学名 (Organism) - 正確なフレーズマッチにするためダブルクォーテーションで括る
+            queryParts.push(`"${organism}"[Organism]`);
+
+            // 2. 遺伝子名/ターゲット (Gene/Keyword)
+            if (gene) {
+                queryParts.push(`AND ("${gene}"[Gene Name] OR "${gene}"[All Fields])`);
+            }
+
+            // 3. 配列長 (Sequence Length)
+            if (lenMin || lenMax) {
+                const min = lenMin ? lenMin : "1";
+                const max = lenMax ? lenMax : "99999999";
+                queryParts.push(`AND ${min}:${max}[SLEN]`);
+            }
+
+            // 4. 分子タイプ
+            if (molType) {
+                queryParts.push(`AND ${molType}`);
+            }
+
+            // 5. 日付範囲
+            if (dateStart || dateEnd) {
+                const formatNCBIDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    const d = new Date(dateStr);
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${yyyy}/${mm}/${dd}`;
+                };
+
+                const start = formatNCBIDate(dateStart) || "1900/01/01";
+                const end = formatNCBIDate(dateEnd) || "3000/01/01";
+                queryParts.push(`AND ${start}:${end}[PDAT]`);
+            }
+
+            // 6. 絞り込み条件
+            if (refSeqOnly) {
+                queryParts.push(`AND "refseq"[Filter]`);
+            }
+            if (completeSequence) {
+                queryParts.push(`AND ("complete genome"[All Fields] OR "complete sequence"[All Fields])`);
+            }
+
+            // 7. 除外条件 (Exclusions)
+            if (excludePatent) {
+                queryParts.push(`NOT "patent"[All Fields]`);
+            }
+            if (excludeEnvUncultured) {
+                queryParts.push(`NOT "environmental samples"[Organism] NOT "uncultured"[Organism] NOT "metagenome"[All Fields]`);
+            }
+            if (excludeWGS) {
+                queryParts.push(`NOT "wgs"[Properties]`);
+            }
+            if (excludeTPA) {
+                queryParts.push(`NOT "tpa"[Properties]`);
+            }
+
+            let finalQuery = queryParts.join(' ');
+            finalQuery = finalQuery.replace(/\s+/g, ' ').trim();
+
+            queryOutput.textContent = finalQuery;
+            searchBtn.disabled = false;
+        }
+
+        // GenBank直接検索アクション
+        function triggerSearchAction() {
+            const url = getSearchUrl();
+            if (!url) {
+                showToast("クエリを構築してください。", true);
+                return;
+            }
+
+            // クエリ全体のURLをサイレントにコピー
+            copyStringToClipboard(url, false);
+
+            document.getElementById('copiedUrlPreview').textContent = url;
+            document.getElementById('modalDirectLink').href = url;
+
+            openModal();
+
+            try {
+                window.open(url, '_blank');
+            } catch (e) {
+                console.log("Direct pop-up blocked by sandbox.");
+            }
+        }
+
+        function openModal() {
+            const modal = document.getElementById('fallbackModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.firstElementChild.classList.remove('scale-95');
+                modal.firstElementChild.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('fallbackModal');
+            modal.firstElementChild.classList.remove('scale-100');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 150);
+        }
+
+        // クエリコピー
+        function copyQuery() {
+            const queryText = document.getElementById('queryOutput').textContent;
+            
+            if (!document.getElementById('organism').value.trim()) {
+                showToast("学名を入力してからコピーしてください。", true);
+                return;
+            }
+
+            copyStringToClipboard(queryText, true, "クエリをクリップボードにコピーしました！");
+        }
+
+        // クリップボードコピーの安全な実装
+        function copyStringToClipboard(text, showToastAlert = true, successMessage = "コピー完了") {
+            const el = document.createElement('textarea');
+            el.value = text;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute';
+            el.style.left = '-9999px';
+            document.body.appendChild(el);
+            el.select();
+            
+            let success = false;
+            try {
+                document.execCommand('copy');
+                success = true;
+                if (showToastAlert) {
+                    showToast(successMessage);
+                }
+            } catch (err) {
+                if (showToastAlert) {
+                    showToast("コピーに失敗しました。手動で選択してコピーしてください。", true);
+                }
+            } finally {
+                document.body.removeChild(el);
+            }
+            return success;
+        }
+
+        // 全選択
+        function selectText(containerId) {
+            const el = document.getElementById(containerId);
+            if (document.selection) {
+                const range = document.body.createTextRange();
+                range.moveToElementText(el);
+                range.select();
+            } else if (window.getSelection) {
+                const range = document.createRange();
+                range.selectNode(el);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            }
+        }
+
+        // トースト通知表示
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            
+            if (isError) {
+                toast.firstElementChild.classList.remove('bg-slate-900', 'border-slate-700');
+                toast.firstElementChild.classList.add('bg-rose-900', 'border-rose-700');
+            } else {
+                toast.firstElementChild.classList.add('bg-slate-900', 'border-slate-700');
+                toast.firstElementChild.classList.remove('bg-rose-900', 'border-rose-700');
+            }
+
+            toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
